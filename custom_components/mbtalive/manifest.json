@@ -1,0 +1,12 @@
+{
+    "domain": "MBTA",
+    "name": "MBTALive",
+    "documentation": "https://github.com/chiabre/mbtalive",
+    "issue_tracker": "https://github.com/chiabre/mbtalive/issues",
+    "codeowners": ["@chiabre"],
+    "iot_class": "cloud_polling",
+    "loggers": ["MBTALive"],
+    "dependencies": [],
+    "requirements": [],
+    "version": "1.0.0"
+  }
