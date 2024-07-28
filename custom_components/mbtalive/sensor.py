@@ -465,7 +465,7 @@ class MBTALiveSensor(Entity):
         else:
             return {
                 "route": self._route,
-                "destination": self._arrival_data[0].get('headsign', 'Unknown'),
+                "destination": self._arrival_data[0].get('trip_to', 'Unknown'),
                 "depart from": self._depart_from,
                 "arrive at": self._arrive_at,
                 "expected departure time": self._arrival_data[0].get('expected_time', 'Unknown'),
