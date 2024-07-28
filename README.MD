@@ -40,7 +40,7 @@ To enable this sensor, add the following lines to your `configuration.yaml` file
 
 ```yaml
 sensor:
-  - platform: mbtalive
+  - platform: mbta
     api_key: YOUR_MBTA_API_KEY
     trips:
       - name: "Morning Commute"
