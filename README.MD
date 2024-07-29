@@ -17,7 +17,7 @@ This project is inspired by the [MBTA Predictions](https://github.com/dhanani94/
 ## Installation
 
 1. Get the [MBTA api key](##-Getting-Your-MBTA-API-Key).
-2. Obtaion the [configuration valeus](##-How-to-Obtain-Configuration-Values)
+2. Obtain the [configuration valeus](##-How-to-Obtain-Configuration-Values)
 2. Copy the custom_component directory into the root directory.
 
 ## Configuration
@@ -27,7 +27,7 @@ To enable this sensor, add the following lines to your `configuration.yaml` file
 ### Configuration Variables
 
 - **api_key**: (Required) Your MBTA API key.
-- **trips**: (Optional) A list of trips to monitor. Each trip can have the following attributes:
+- **trips**: (Required) A list of trips to monitor. Each trip can have the following attributes:
   - **name**: (Optional) A custom name for the trip. Defaults to `MBTA`.
   - **route**: (Required) The route name.
   - **depart_from**: (Required) The departure stop name.
