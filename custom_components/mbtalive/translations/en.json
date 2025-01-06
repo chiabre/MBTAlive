@@ -1,0 +1,17 @@
+{
+    "config": {
+      "step": {
+        "user": {
+          "title": "MBTA Configuration",
+          "description": "Set up your MBTA integration.",
+          "data": {
+            "api_key": "API Key"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Cannot connect to MBTA API. Please check your API key."
+      }
+    }
+  }
+  
