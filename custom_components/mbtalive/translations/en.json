@@ -1,17 +1,27 @@
 {
-    "config": {
-      "step": {
-        "user": {
-          "title": "MBTA Configuration",
-          "description": "Set up your MBTA integration.",
-          "data": {
-            "api_key": "API Key"
-          }
+  "config": {
+    "step": {
+      "user": {
+        "title": "MBTA Live Configuration",
+        "description": "Set up your MBTA Live integration.",
+        "data": {
+          "name": "Instance name",
+          "depart_from": "Departure Station (Required)",
+          "arrive_at": "Arrival Station (Required)",
+          "api_key": "API Key (Optional)"
         }
-      },
-      "error": {
-        "cannot_connect": "Cannot connect to MBTA API. Please check your API key."
       }
+    },
+    "error": {
+      "stop_not_found_depart_from": "Departure stop not found.",
+      "stop_not_found_arrive_at": "Arrival stop not found.",
+      "api_key_error": "Invalid API key or connection issue."
     }
+  },
+  "config_flow": {
+    "name": "Instance name (Required)",
+    "depart_from": "Departure Station (Required)",
+    "arrive_at": "Arrival Station (Required)",
+    "api_key": "API Key (Optional)"
   }
-  
+}

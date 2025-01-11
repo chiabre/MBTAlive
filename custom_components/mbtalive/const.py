@@ -1,1 +1,2 @@
-DOMAIN = "mbta"
+DOMAIN = "mbtalive"
+DEFAULT_NAME = "mbtalive"
