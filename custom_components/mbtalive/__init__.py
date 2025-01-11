@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the MBTA integration."""
     _LOGGER.info("Setting up MBTA integration.")
-    hass.data[DOMAIN] = {}  # Initialize the domain storage for the integration
+    hass.data[DOMAIN] = {}  # Initialize the domain storage for the integration (optional)
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -22,7 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # handler = SomeHandler(entry.data, session=async_get_clientsession(hass))
         # await handler.initialize()
         
-        # # Store the handler for later use
+        # # Store the handler for later use (optional)
         # hass.data[DOMAIN][entry.entry_id] = handler
         #_LOGGER.debug(f"Handler initialized and stored for entry {entry.entry_id}")
         
@@ -35,14 +35,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.info(f"Unloading MBTA config entry: {entry.entry_id}")
-    
-    # handler = hass.data[DOMAIN].pop(entry.entry_id, None)
-    # if handler:
-    #     try:
-    #         await handler.close()  # Replace with actual cleanup logic
-    #         _LOGGER.debug(f"Handler for {entry.entry_id} closed successfully.")
-    #     except Exception as e:
-    #         _LOGGER.error(f"Error during handler cleanup for {entry.entry_id}: {e}")
     
     # # Unload associated platforms
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, ["sensor"]):

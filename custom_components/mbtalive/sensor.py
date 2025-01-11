@@ -1,163 +1,228 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 
 from homeassistant.components.sensor import (
-    DOMAIN as SENSOR_DOMAIN,
-    PLATFORM_SCHEMA,
     SensorDeviceClass,
     SensorEntity,
-    SensorEntityDescription,
-    SensorStateClass,
 )
 from homeassistant.const import UnitOfTime
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback, EntityPlatform
-
 from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt
 
-from .const import DOMAIN
 from mbtaclient import JourneysHandler, Journey
 
 _LOGGER = logging.getLogger(__name__)
 
-class MBTAJourneySensor(SensorEntity):
-    """Representation of a MBTA Journey Sensor that tracks journey information"""
-    
-    def __init__(self, name, hass: HomeAssistant, journeys_handler: JourneysHandler):
-        """Initialize the sensor."""
-        self._name = name
-        self._unique_id = f"mbtalive_{name.replace(' ', '_')}"  # Unique ID for the sensor
-        self._hass = hass  # Store reference to Home Assistant object
-        self._journeys_handler = journeys_handler  # Reference to the JourneysHandler
-        self._journey: Journey = None  # Placeholder for the journey data
-        self._attributes = {}  # Store additional attributes
-        self._icon = "mdi:train-bus"  # Initial icon value
+
+class MBTAJourneyCoordinator(DataUpdateCoordinator):
+    """Coordinator to manage fetching journey data for sensors."""
+
+    def __init__(self, hass, journeys_handler: JourneysHandler):
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name="MBTA Journey Data",
+            update_interval=timedelta(seconds=30),
+        )
+        self.journeys_handler: JourneysHandler = journeys_handler
+
+    async def _async_update_data(self):
+        """Fetch data from the MBTA API."""
+        try:
+            journeys: list[Journey] = await self.journeys_handler.update()
+            if not journeys:
+                raise UpdateFailed("No journeys returned from the MBTA API.")
+            return journeys
+        except Exception as err:
+            raise UpdateFailed(f"Error fetching journey data: {err}")
+
+
+class MBTABaseJourneySensor(SensorEntity):
+    """Base class for MBTA journey sensors."""
+
+    def __init__(self, name, coordinator, sensor_type, config_entry_id):
+        """Initialize the base sensor."""
+        self._coordinator = coordinator
+        self._sensor_type = sensor_type
+        self._attr_unique_id = f"{config_entry_id}-{sensor_type}"  # Unique ID for the entity
+        self._attr_device_info = {
+            "identifiers": {(config_entry_id,)},
+            "name": name,
+            "manufacturer": "chiabre",
+            "model": "MBTA Live Journey Sensor",
+        }
+        self._attr_config_entry_id = config_entry_id  # Link entity to config entry
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return self._name
+        return f"{self._sensor_type}"
 
     @property
-    def state(self):
-        """Return the state of the sensor as a duration (in seconds) until departure."""
-        if self._journey:
-            departure_time = self._journey.get_stop_time_to('departure')
-            if departure_time:
-                _LOGGER.debug(f"Getting state for '{self._name}', departure in {departure_time} seconds.")
-                return round((departure_time / 60),0)  # Return time to departure as the state (in minutes)
-            else:
-                _LOGGER.warning(f"No departure time found for '{self._name}'.")
-        else:
-            _LOGGER.warning(f"State requested for '{self._name}', but no journey data available.")
-        return None
+    def available(self):
+        """Return if the sensor is available."""
+        return self._coordinator.last_update_success
+
+    async def async_update(self):
+        """Fetch the latest data from the coordinator."""
+        await self._coordinator.async_request_refresh()
 
     @property
     def extra_state_attributes(self):
-        """Return additional state attributes for the sensor."""
-        if self._journey:
-            route_type = self._journey.get_route_type()
-            if route_type in [0, 1, 2, 4]:
-                line = self._journey.get_route_long_name()
-            elif route_type == 3:
-                line = self._journey.get_route_short_name()
-            if route_type == 2:
-                train_number = self._journey.get_trip_name()
-            else:
-                train_number = "NA"
-            self._attributes = {
-                "Line": line,
-                "Type": self._journey.get_route_description(),
-                "Color": "#"+self._journey.get_route_color(),
-                "Train Number": train_number,
-                "Direction": f"{self._journey.get_trip_direction()} to {self._journey.get_trip_destination()}",
-                "Destination": self._journey.get_trip_headsign(),
-                "Duration": str(timedelta(seconds=self._journey.get_trip_duration() or 0)),
-                "Departure station": self._journey.get_stop_name('departure'),
-                "Departure platform": self._journey.get_platform_name('departure'),
-                "Departure time": self._journey.get_stop_time('departure'),
-                "Departure delay": self._format_timedelta(seconds=self._journey.get_stop_delay('departure')),
-                "Time to departure": str(timedelta(seconds=self._journey.get_stop_time_to('departure') or 0)),
-                "Departure status": self._journey.get_stop_status('departure'),
-                "Arrival station": self._journey.get_stop_name('arrival'),
-                "Arrival platform": self._journey.get_platform_name('arrival'),
-                "Arrival time": self._journey.get_stop_time('arrival'),
-                "Arrival delay": self._format_timedelta(self._journey.get_stop_delay('arrival')),
-                "Time to arrival": str(timedelta(seconds=self._journey.get_stop_time_to('arrival') or 0)),
-                "Arrival status": self._journey.get_stop_status('arrival'),
-            }            
-            # Add alerts if any
-            if self._journey.alerts:
-                alerts = [
-                    (f"({i+1}) ") + 
-                    self._journey.get_alert_header(i) 
-                    for i, _ in enumerate(self._journey.alerts) 
-                ]
-                self._attributes["alerts"] = alerts
+        """Return extra attributes."""
+        if self._coordinator.data:
+            journey = self._coordinator.data[0]  # Assuming only one journey
+            return {
+                "Type": journey.get_route_description(),
+                "Color": "#"+journey.get_route_color(),
+            }
+        return None
 
-        return self._attributes
 
-    def _format_timedelta(self, seconds):
-        """Format the timedelta to HH:MM:SS, including negative values."""
-        if seconds is None:
-            return "00:00:00"
-        # Ensure the seconds value is an integer
-        seconds = int(seconds)
-        # Determine if the time is negative
-        negative = seconds < 0
-        if negative:
-            seconds = abs(seconds)  # Make seconds positive for formatting
-        # Calculate hours, minutes, and seconds
-        hours, remainder = divmod(seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        # Format as HH:MM:SS
-        formatted_time = f"{'-' if negative else ''}{hours:02}:{minutes:02}:{seconds:02}"
-        return formatted_time
-
+class MBTADepartureTimeToSensor(MBTABaseJourneySensor):
+    """Sensor for departure time."""
+    
     @property
-    def unique_id(self):
-        """Return the unique ID of the sensor."""
-        return self._unique_id
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data and self._coordinator.data[0].get_stop_time_to("departure"):
+            journey: Journey = self._coordinator.data[0]  # Assuming only one journey
+            return journey.get_stop_time_to("departure") / 60
+        return None
 
     @property
     def device_class(self):
         """Return the device class for the sensor."""
-        return SensorDeviceClass.DURATION  # Define the sensor as a duration type
+        return SensorDeviceClass.DURATION
 
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement for the sensor."""
-        return UnitOfTime.MINUTES  # Sensor's unit of measurement is minutes
+        return UnitOfTime.MINUTES
+    
+class MBTADepartureTimeSensor(MBTABaseJourneySensor):
+    """Sensor for departure time."""
 
-    async def async_update(self):
-        """Fetch the latest journey data."""
-        try:
-            _LOGGER.debug(f"Attempting to fetch journey data for '{self._name}'...")
-            journeys: list[Journey] = await self._journeys_handler.update()
-            if journeys:
-                self._journey = journeys[0]
-                _LOGGER.debug(f"Updated journey data for sensor '{self._name}': {self._journey}")          
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data and self._coordinator.data[0].get_stop_time("departure"):
+            journey: Journey = self._coordinator.data[0]  # Assuming only one journey
+            return journey.get_stop_time("departure").replace(tzinfo=None)
+        return None
+
+    @property
+    def device_class(self):
+        """Return the device class for the sensor."""
+        # Use None or other device classes based on the data.
+        SensorDeviceClass.TIMESTAMP 
+    
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement for the sensor."""
+        # No unit is necessary for the platform name, so None.
+        return None
+
+class MBTADepartureDelaySensor(MBTABaseJourneySensor):
+    """Sensor for departure time."""
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data and self._coordinator.data[0].get_stop_time("departure"):
+            journey: Journey = self._coordinator.data[0]  # Assuming only one journey
+            departure_delay = journey.get_stop_delay('departure')
+            if departure_delay is not None:
+                return departure_delay / 60
             else:
-                _LOGGER.warning(f"No journeys returned for '{self._name}'.")
-        except Exception as e:
-            _LOGGER.error(f"Error updating journey data for sensor '{self._name}': {e}")
-            self._journey: Journey = None  # Clear the journey data in case of an error
+                return 0  # Default value when there's no delay
+        return None
+
+    @property
+    def device_class(self):
+        """Return the device class for the sensor."""
+        return SensorDeviceClass.DURATION
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement for the sensor."""
+        return UnitOfTime.MINUTES
+    
+class MBTADepartureStatusSensor(MBTABaseJourneySensor):
+    """Sensor for departure time."""
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data and self._coordinator.data[0].get_stop_status("departure"):
+            journey: Journey = self._coordinator.data[0]  # Assuming only one journey
+            return journey.get_stop_status('departure')
+        return None
+
+    @property
+    def device_class(self):
+        """Return the device class for the sensor."""
+        # Use None or other device classes based on the data.
+        return None 
+    
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement for the sensor."""
+        # No unit is necessary for the platform name, so None.
+        return None
+
+class MBTADeparturePlatformSensor(MBTABaseJourneySensor):
+    """Sensor for departure platfomr."""
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data and self._coordinator.data[0].get_platform_name("departure"):
+            journey: Journey = self._coordinator.data[0]  # Assuming only one journey
+            return journey.get_platform_name("departure")
+        return None
+
+    @property
+    def device_class(self):
+        """Return the device class for the sensor."""
+        # Use None or other device classes based on the data.
+        return None 
+    
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement for the sensor."""
+        # No unit is necessary for the platform name, so None.
+        return None
+    
+class MBTADestinationSensor(MBTABaseJourneySensor):
+    """Sensor for journey direction."""
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data:
+            journey: Journey = self._coordinator.data[0]  # Assuming only one journey
+            return journey.get_trip_headsign()
+        return None
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
-):
+) -> bool:
     """Set up the sensor platform."""
     _LOGGER.debug("Setting up sensors.")
 
     depart_from = entry.data.get("depart_from")
     arrive_at = entry.data.get("arrive_at")
     api_key = entry.data.get("api_key")
-    title = entry.title  # Get the title of the config entry
-
-    _LOGGER.debug(f"Extracted config entry data - Depart from: {depart_from}, Arrive at: {arrive_at}, API Key: {api_key}")
+    title = entry.title
+    config_entry_id = entry.entry_id
 
     try:
         journeys_handler = JourneysHandler(
@@ -166,21 +231,24 @@ async def async_setup_entry(
             max_journeys=1,
             api_key=api_key,
             session=None,
-            logger=_LOGGER
+            logger=_LOGGER,
         )
-        await journeys_handler.async_init()  # Initialize the handler
-        _LOGGER.debug("JourneysHandler initialized successfully.")
-               
-        # Create a unique sensor name based on the entry title
-        sensor_name = f"MBTA: {title}"
-        
-        # Create the sensor entity and immediately update its state
-        sensor = MBTAJourneySensor(name=sensor_name, hass=hass, journeys_handler=journeys_handler)
-        await sensor.async_update()  # Fetch and update journey data right away
-        
-        # Add the sensor entity to Home Assistant
-        async_add_entities([sensor])
+        await journeys_handler.async_init()
+
+        coordinator = MBTAJourneyCoordinator(hass, journeys_handler)
+        await coordinator.async_config_entry_first_refresh()
+        #coordinator.data[0]
+
+        sensors = [
+            MBTADepartureTimeToSensor(title, coordinator, "Next departure", config_entry_id),
+            MBTADepartureTimeSensor(title, coordinator, "Departure time", config_entry_id),
+            MBTADepartureDelaySensor(title, coordinator, "Delay", config_entry_id),
+            MBTADepartureStatusSensor(title, coordinator, "Status", config_entry_id),
+            MBTADeparturePlatformSensor(title, coordinator, "Platfomr", config_entry_id),
+            MBTADestinationSensor(title, coordinator, "Direction", config_entry_id),
+        ]
+        async_add_entities(sensors)
 
     except Exception as e:
         _LOGGER.error(f"Error initializing MBTA journeys handler: {e}")
-        return False  # Indicate setup failure in case of error
+        return False
