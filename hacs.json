@@ -1,6 +1,5 @@
 {
     "name": "MBTA Live",
-    "zip_release": true,
     "country": ["us"]
   }
   
