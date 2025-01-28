@@ -6,6 +6,7 @@
     "render_readme": true,
     "zip_release": true,
     "country": ["us"],
-    "filename": "custom_components/mbtalive/",
+    "filename": "custom_components/mbalive/",
     "iot_class": "Cloud Polling"
   }
+  

@@ -9,7 +9,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the MBTA integration."""
     _LOGGER.info("Setting up MBTA integration.")
-    
+
     try:
         hass.data.setdefault(DOMAIN, {})  # Initialize domain data storage safely
         _LOGGER.debug(f"{DOMAIN} data initialized: {hass.data[DOMAIN]}")
@@ -21,7 +21,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up a config entry for MBTA."""
     _LOGGER.debug(f"Setting up entry: {entry.entry_id}")
-    
+
     try:
         # Example: If using a handler, initialize and store it (commented as placeholder)
         # handler = SomeHandler(entry.data, session=async_get_clientsession(hass))

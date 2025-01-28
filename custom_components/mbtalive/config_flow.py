@@ -7,19 +7,10 @@ from homeassistant.config_entries import (
     ConfigFlow,
 )
 
-from homeassistant.const import (
-    CONF_ENTITY_ID,
-    CONF_MODE,
-    CONF_NAME,
-    CONF_SCAN_INTERVAL,
-    CONF_UNIQUE_ID,
-)
-from homeassistant.core import callback
 
 from mbtaclient.handlers.trips_handler import TripsHandler
 from mbtaclient.client.mbta_client  import MBTAClient
 
- 
 from .const import (
     DEFAULT_NAME,
     DOMAIN,
