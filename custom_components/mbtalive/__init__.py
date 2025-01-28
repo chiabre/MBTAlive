@@ -1,8 +1,10 @@
 """
 Module for managing the MBTA integration with Home Assistant.
 
-This module includes setup and unloading functions for the MBTA integration, as well as logging and error handling.
-It defines methods to configure and unload MBTA-related platforms in Home Assistant, including logging setup progress,
+This module includes setup and unloading functions for the MBTA integration, 
+as well as logging and error handling.
+It defines methods to configure and unload MBTA-related platforms in Home Assistant, 
+including logging setup progress,
 handling exceptions, and forwarding setup to the sensor platform.
 
 Functions:
