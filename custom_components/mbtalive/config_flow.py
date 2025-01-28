@@ -4,10 +4,9 @@ from typing import Dict
 import voluptuous as vol
 
 from homeassistant.config_entries import (
-    ConfigEntry,
     ConfigFlow,
-    OptionsFlowWithConfigEntry,
 )
+
 from homeassistant.const import (
     CONF_ENTITY_ID,
     CONF_MODE,
@@ -16,20 +15,11 @@ from homeassistant.const import (
     CONF_UNIQUE_ID,
 )
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowHandler, FlowResult
-from homeassistant.helpers.selector import (
-    EntitySelector,
-    EntitySelectorConfig,
-    NumberSelector,
-    NumberSelectorConfig,
-    NumberSelectorMode,
-    SelectSelector,
-    SelectSelectorConfig,
-    TextSelector,
-)
 
-from mbtaclient.journeys_handler import JourneysHandler
+from mbtaclient.handlers.trips_handler import TripsHandler
+from mbtaclient.client.mbta_client  import MBTAClient
 
+ 
 from .const import (
     DEFAULT_NAME,
     DOMAIN,
@@ -62,18 +52,10 @@ class MBTAConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug(f"User input received: {user_input}")
 
             try:
-                # Create a JourneysHandler instance
-                journeys_handler = JourneysHandler(
-                    depart_from_name=depart_from,
-                    arrive_at_name=arrive_at,
-                    max_journeys=1,
-                    api_key=api_key,
-                    logger=_LOGGER,
-                )
-
-                # Test the connection by fetching initial data
-                await journeys_handler.async_init() 
-
+                
+                mbta_client = MBTAClient(api_key=api_key)
+                await TripsHandler.create(departure_stop_name=depart_from, mbta_client=mbta_client,arrival_stop_name=arrive_at, max_trips=1)
+     
                 # If no exceptions are raised, the connection is successful
                 _LOGGER.debug("Connection to MBTA API successful.")
 

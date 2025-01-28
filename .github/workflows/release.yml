@@ -1,0 +1,36 @@
+name: Create Release ZIP
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build Release ZIP
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Install dependencies (if needed, adjust for your project)
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Create the ZIP file for the release
+      - name: Package Custom Component
+        run: |
+          mkdir -p build
+          zip -r build/mbalive.zip custom_components/mbalive
+
+      # Upload the ZIP file to the GitHub Release
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: build/mbalive.zip
+          asset_name: mbalive.zip
+          asset_content_type: application/zip

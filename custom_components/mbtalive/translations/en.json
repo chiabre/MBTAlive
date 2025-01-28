@@ -5,7 +5,6 @@
         "title": "MBTA Live Configuration",
         "description": "Set up your MBTA Live integration.",
         "data": {
-          "name": "Instance name",
           "depart_from": "Departure Station (Required)",
           "arrive_at": "Arrival Station (Required)",
           "api_key": "API Key (Optional)"
@@ -19,9 +18,8 @@
     }
   },
   "config_flow": {
-    "name": "Instance name (Required)",
-    "depart_from": "Departure Station (Required)",
-    "arrive_at": "Arrival Station (Required)",
+    "depart_from": "Departure Stop (Required)",
+    "arrive_at": "Arrival Stop (Required)",
     "api_key": "API Key (Optional)"
   }
 }
