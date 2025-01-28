@@ -1,12 +1,6 @@
 {
     "name": "MBTA Live",
-    "content_in_root": false,
-    "domains": ["sensor"],
-    "homeassistant": "2024.6.0",
-    "render_readme": true,
     "zip_release": true,
-    "country": ["us"],
-    "filename": "custom_components/mbalive/",
-    "iot_class": "Cloud Polling"
+    "country": ["us"]
   }
   

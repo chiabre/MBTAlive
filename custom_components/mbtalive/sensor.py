@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 import logging
 
 from homeassistant.components.sensor import (
@@ -58,7 +58,7 @@ class MBTABaseJourneySensor(SensorEntity):
         sensor_name,
         icon):
         """Initialize the base sensor."""
-        
+
         self._attr_config_entry_id = config_entry_id  # Link entity to config entry
         self._coordinator = coordinator
         self._attr_unique_id = f"{config_entry_id}-{sensor_name}"  # Unique ID for the entity
@@ -84,7 +84,7 @@ class MBTABaseJourneySensor(SensorEntity):
     def unit_of_measurement(self):
         """Return the unit of measurement for the sensor."""
         return None
-    
+
     @property
     def name(self):
         """Return the name of the sensor."""
@@ -103,7 +103,7 @@ class MBTABaseJourneySensor(SensorEntity):
     async def async_update(self):
         """Fetch the latest data from the coordinator."""
         await self._coordinator.async_request_refresh()
-    
+
     # @property
     # def extra_state_attributes(self):
     #     """Return extra attributes."""
@@ -133,7 +133,7 @@ class MBTAHeadsignSensor(MBTABaseJourneySensor):
             if trip.headsign:
                 return trip.headsign
         return None
-    
+
 class MBTANameSensor(MBTABaseJourneySensor):
     """Sensor for trip name."""
 
@@ -145,7 +145,7 @@ class MBTANameSensor(MBTABaseJourneySensor):
             if trip.name:
                 return trip.name
         return None
-    
+
 class MBTADestinationSensor(MBTABaseJourneySensor):
     """Sensor for trip destination."""
 
@@ -191,7 +191,7 @@ class MBTADurationSensor(MBTABaseJourneySensor):
     def unit_of_measurement(self):
         """Return the unit of measurement for the sensor."""
         return UnitOfTime.MINUTES
-    
+
 #ROUTE
 class MBTARouteNameSensor(MBTABaseJourneySensor):
     """Sensor for trip route name."""
@@ -203,8 +203,7 @@ class MBTARouteNameSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             if trip.route_name:
                 return trip.route_name
-        return None    
-    
+        return None
 
 class MBTARouteTypeSensor(MBTABaseJourneySensor):
     """Sensor for route type."""
@@ -216,10 +215,9 @@ class MBTARouteTypeSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             if trip.route_description:
                 return trip.route_description
-        return None 
-       
-#VEHICLE
+        return None
 
+#VEHICLE
 class MBTAVehicleLonSensor(MBTABaseJourneySensor):
     """Sensor for vehicle longitude."""
 
@@ -243,14 +241,14 @@ class MBTAVehicleLonSensor(MBTABaseJourneySensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data
             attributes = {}
-            
+
             if trip.vehicle_updated_at:
-                 attributes["cupdated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
-            
+                attributes["updated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
+
             return attributes  # Return the dictionary of attributes
-        
+
         return None
- 
+
 class MBTAVehicleLatSensor(MBTABaseJourneySensor):
     """Sensor for vehicle longlatitude."""
 
@@ -262,26 +260,26 @@ class MBTAVehicleLatSensor(MBTABaseJourneySensor):
             if trip.vehicle_latitude:
                 return trip.vehicle_latitude
         return None 
-    
+
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement for the sensor."""
         return "°"  # Degrees symbol for geographic coordinates
- 
+
     @property
     def extra_state_attributes(self):
         """Return extra attributes."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data
             attributes = {}
-            
+    
             if trip.vehicle_updated_at:
-                 attributes["cupdated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
-            
+                 attributes["updated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
+   
             return attributes  # Return the dictionary of attributes
-        
+ 
         return None
-           
+
 class MBTAVehicleLastUpdateSensor(MBTABaseJourneySensor):
     """Sensor for vehicle last update."""
 
@@ -293,7 +291,7 @@ class MBTAVehicleLastUpdateSensor(MBTABaseJourneySensor):
             if trip.vehicle_updated_at:
                 return trip.vehicle_updated_at.replace(tzinfo=None)
         return None
-        
+
 #DEPARTURE STOP
 class MBTADepartureNameSensor(MBTABaseJourneySensor):
     """Sensor for departure stop name."""
@@ -318,7 +316,7 @@ class MBTADeparturePlatformSensor(MBTABaseJourneySensor):
             if trip.departure_platform_name:
                 return trip.departure_platform_name
         return None
-    
+
 class MBTADepartureTimeSensor(MBTABaseJourneySensor):
     """Sensor for departure time."""        
 
@@ -330,7 +328,7 @@ class MBTADepartureTimeSensor(MBTABaseJourneySensor):
             if trip.departure_time:
                 return trip.departure_time.replace(tzinfo=None)
         return None
-    
+
     @property
     def device_class(self):
         """Return the device class for the sensor."""
@@ -358,7 +356,7 @@ class MBTADepartureDelaySensor(MBTABaseJourneySensor):
     def unit_of_measurement(self):
         """Return the unit of measurement for the sensor."""
         return UnitOfTime.MINUTES
-    
+
 class MBTADepartureTimeToSensor(MBTABaseJourneySensor):
     """Sensor for departure time to."""        
 
@@ -417,7 +415,7 @@ class MBTAArrivalPlatformSensor(MBTABaseJourneySensor):
             if trip.arrival_platform_name:
                 return trip.arrival_platform_name
         return None
-    
+
 class MBTAArrivalTimeSensor(MBTABaseJourneySensor):
     """Sensor for arrival time."""        
 
@@ -429,7 +427,7 @@ class MBTAArrivalTimeSensor(MBTABaseJourneySensor):
             if trip.arrival_time:
                 return trip.arrival_time.replace(tzinfo=None)
         return None
-    
+
     @property
     def device_class(self):
         """Return the device class for the sensor."""
@@ -459,7 +457,7 @@ class MBTAArrivalDelaySensor(MBTABaseJourneySensor):
     def unit_of_measurement(self):
         """Return the unit of measurement for the sensor."""
         return UnitOfTime.MINUTES
-    
+
 class MBTAArrivalTimeToSensor(MBTABaseJourneySensor):
     """Sensor for arrival time to."""        
 
@@ -495,7 +493,7 @@ class MBTAArrivalStatusSensor(MBTABaseJourneySensor):
         return None
 
 #ALERTS
-    
+
 class MBTAAlertsSensor(MBTABaseJourneySensor):
     """Sensor for trip alerts."""
 
@@ -507,7 +505,7 @@ class MBTAAlertsSensor(MBTABaseJourneySensor):
             if trip.mbta_alerts:
                 return len(trip.mbta_alerts)
         return 0
-    
+
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement for the sensor."""
@@ -527,10 +525,9 @@ class MBTAAlertsSensor(MBTABaseJourneySensor):
                 _LOGGER.debug(alerts)
             attributes["alerts"] = alerts
             _LOGGER.debug(attributes)
-            
+
             return attributes  # Return the dictionary of attributes
         return None
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -562,7 +559,7 @@ async def async_setup_entry(
         _LOGGER.debug("Refreshing coordinator")
 
         await coordinator.async_config_entry_first_refresh()
-        
+
         # Get the first trip and determine the route icon
         trip: Trip = coordinator.data
         route_type = trip.route_type
@@ -600,7 +597,7 @@ async def async_setup_entry(
             MBTAArrivalStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Status",icon="mdi:timetable"),
             MBTAAlertsSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Alerts",icon="mdi:alert-outline"),
         ]
-        
+
         if route_type == 2: 
             mbta_name_sensor = MBTANameSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Train",icon=icon)
             sensors.append(mbta_name_sensor)
