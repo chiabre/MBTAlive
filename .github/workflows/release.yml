@@ -24,13 +24,13 @@ jobs:
       - name: Package Custom Component
         run: |
           mkdir -p build
-          zip -r build/mbalive.zip custom_components/mbalive
+          zip -r build/mbtalive.zip custom_components/mbtalive
 
       # Upload the ZIP file to the GitHub Release
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/mbalive.zip
-          asset_name: mbalive.zip
+          asset_path: build/mbtalive.zip
+          asset_name: mbtalive.zip
           asset_content_type: application/zip
