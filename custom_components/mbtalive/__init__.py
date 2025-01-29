@@ -24,7 +24,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the MBTA integration."""
     _LOGGER.info("Setting up MBTA integration.")
 
