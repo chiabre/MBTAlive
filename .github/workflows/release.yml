@@ -25,7 +25,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload ${{ github.event.release.id }} build/mbtalive.zip \
-            --name mbtalive.zip \
-            --contentType application/zip
-
+          gh release upload ${{ github.event.release.id }} build/mbtalive.zip
