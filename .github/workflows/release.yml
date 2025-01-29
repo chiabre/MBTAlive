@@ -20,6 +20,7 @@ jobs:
           mkdir -p build
           zip -r build/mbtalive.zip custom_components/mbtalive
 
+      # Upload the ZIP file to the GitHub Release
       - name: Upload Release Asset (using gh)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -27,3 +28,4 @@ jobs:
           gh release upload ${{ github.event.release.id }} build/mbtalive.zip \
             --name mbtalive.zip \
             --contentType application/zip
+
