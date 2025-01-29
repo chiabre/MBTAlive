@@ -19,8 +19,8 @@ from mbtaclient.trip import Trip
 
 _LOGGER = logging.getLogger(__name__)
 
-class MBTAJourneyCoordinator(DataUpdateCoordinator):
-    """Coordinator to manage fetching journey data for sensors."""
+class MBTATripCoordinator(DataUpdateCoordinator):
+    """Coordinator to manage fetching trips data for sensors."""
 
     def __init__(self, hass, trips_handler: TripsHandler):
         """Initialize the coordinator."""
@@ -35,20 +35,20 @@ class MBTAJourneyCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from the MBTA API."""
         try:
-            _LOGGER.debug("Fetching journey data from MBTA API")
+            _LOGGER.debug("Fetching trips data from MBTA API")
             trips: list[Trip] = await self.trips_handler.update()
             if not trips:
-                raise UpdateFailed("No journeys returned from the MBTA API.")
+                raise UpdateFailed("No trips returned from the MBTA API.")
             return trips[0]
         except UpdateFailed as e:
             _LOGGER.error(f"Update failed: {e}")
             raise  # Re-raise to propagate the error
         except Exception as err:
-            _LOGGER.error(f"Error fetching journey data: {err}")
-            raise UpdateFailed(f"Error fetching journey data: {err}")
+            _LOGGER.error(f"Error fetching trips data: {err}")
+            raise UpdateFailed(f"Error fetching trips data: {err}")
 
-class MBTABaseJourneySensor(SensorEntity):
-    """Base class for MBTA journey sensors."""
+class MBTABaseTripSensor(SensorEntity):
+    """Base class for MBTA trip sensors."""
 
     def __init__(
         self,
@@ -106,19 +106,7 @@ class MBTABaseJourneySensor(SensorEntity):
 
 
 #TRIP
-class MBTAHeadsignSensor(MBTABaseJourneySensor):
-    """Sensor for trip headsign."""
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        if self._coordinator.data:
-            trip: Trip = self._coordinator.data
-            if trip.headsign:
-                return trip.headsign
-        return None
-
-class MBTANameSensor(MBTABaseJourneySensor):
+class MBTANameSensor(MBTABaseTripSensor):
     """Sensor for trip name."""
 
     @property
@@ -130,8 +118,36 @@ class MBTANameSensor(MBTABaseJourneySensor):
                 return trip.name
         return None
 
-class MBTADestinationSensor(MBTABaseJourneySensor):
+class MBTAHeadsignSensor(MBTABaseTripSensor):
+    """Sensor for trip headsign."""
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data
+            if trip.headsign:
+                return trip.headsign
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data
+            attributes = {}
+            if trip.direction_destination:
+                attributes["destination"]  = trip.direction_destination
+            if trip.direction_name:
+                attributes["direction"]  = trip.direction_name
+            return attributes  # Return the dictionary of attributes
+
+        return None
+
+class MBTADestinationSensor(MBTABaseTripSensor):
     """Sensor for trip destination."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -142,8 +158,10 @@ class MBTADestinationSensor(MBTABaseJourneySensor):
                 return trip.direction_destination
         return None
 
-class MBTADirectionSensor(MBTABaseJourneySensor):
+class MBTADirectionSensor(MBTABaseTripSensor):
     """Sensor for trip direction."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -152,9 +170,9 @@ class MBTADirectionSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             if trip.direction_name:
                 return trip.direction_name
-        return None       
+        return None
 
-class MBTADurationSensor(MBTABaseJourneySensor):
+class MBTADurationSensor(MBTABaseTripSensor):
     """Sensor for departure time."""        
 
     @property
@@ -163,7 +181,7 @@ class MBTADurationSensor(MBTABaseJourneySensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data
             if trip.duration:
-                return round(trip.duration.seconds / 60,0)
+                return round(trip.duration.total_seconds() / 60,0)
         return None
 
     @property
@@ -177,7 +195,7 @@ class MBTADurationSensor(MBTABaseJourneySensor):
         return UnitOfTime.MINUTES
 
 #ROUTE
-class MBTARouteNameSensor(MBTABaseJourneySensor):
+class MBTARouteNameSensor(MBTABaseTripSensor):
     """Sensor for trip route name."""
 
     @property
@@ -189,8 +207,24 @@ class MBTARouteNameSensor(MBTABaseJourneySensor):
                 return trip.route_name
         return None
 
-class MBTARouteTypeSensor(MBTABaseJourneySensor):
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data
+            attributes = {}
+            if trip.route_description:
+                attributes["type"] = trip.route_description
+            if trip.route_color:
+                attributes["color"] = f"#{trip.route_color}"
+            return attributes  # Return the dictionary of attributes
+
+        return None
+
+class MBTARouteTypeSensor(MBTABaseTripSensor):
     """Sensor for route type."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -202,7 +236,7 @@ class MBTARouteTypeSensor(MBTABaseJourneySensor):
         return None
 
 #VEHICLE
-class MBTAVehicleLonSensor(MBTABaseJourneySensor):
+class MBTAVehicleLonSensor(MBTABaseTripSensor):
     """Sensor for vehicle longitude."""
 
     @property
@@ -212,8 +246,8 @@ class MBTAVehicleLonSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             if trip.vehicle_longitude:
                 return trip.vehicle_longitude
-        return None 
-    
+        return None
+
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement for the sensor."""
@@ -225,15 +259,13 @@ class MBTAVehicleLonSensor(MBTABaseJourneySensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data
             attributes = {}
-
             if trip.vehicle_updated_at:
                 attributes["updated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
-
             return attributes  # Return the dictionary of attributes
 
         return None
 
-class MBTAVehicleLatSensor(MBTABaseJourneySensor):
+class MBTAVehicleLatSensor(MBTABaseTripSensor):
     """Sensor for vehicle longlatitude."""
 
     @property
@@ -256,16 +288,16 @@ class MBTAVehicleLatSensor(MBTABaseJourneySensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data
             attributes = {}
-    
             if trip.vehicle_updated_at:
                  attributes["updated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
-   
             return attributes  # Return the dictionary of attributes
- 
+
         return None
 
-class MBTAVehicleLastUpdateSensor(MBTABaseJourneySensor):
+class MBTAVehicleLastUpdateSensor(MBTABaseTripSensor):
     """Sensor for vehicle last update."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -277,7 +309,7 @@ class MBTAVehicleLastUpdateSensor(MBTABaseJourneySensor):
         return None
 
 #DEPARTURE STOP
-class MBTADepartureNameSensor(MBTABaseJourneySensor):
+class MBTADepartureNameSensor(MBTABaseTripSensor):
     """Sensor for departure stop name."""
 
     @property
@@ -289,7 +321,22 @@ class MBTADepartureNameSensor(MBTABaseJourneySensor):
                 return trip.departure_stop_name
         return None
 
-class MBTADeparturePlatformSensor(MBTABaseJourneySensor):
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data
+            attributes = {}
+            if trip.departure_platform_name:
+                 attributes["platform"]  = trip.departure_platform_name
+            if trip.departure_status:
+                attributes["status"] = trip.departure_status
+            else:
+                attributes["status"] = "NO LIVE DATA"
+            return attributes  # Return the dictionary of attributes
+        return None
+    
+class MBTADeparturePlatformSensor(MBTABaseTripSensor):
     """Sensor for departure platform name.."""
 
     @property
@@ -301,7 +348,7 @@ class MBTADeparturePlatformSensor(MBTABaseJourneySensor):
                 return trip.departure_platform_name
         return None
 
-class MBTADepartureTimeSensor(MBTABaseJourneySensor):
+class MBTADepartureTimeSensor(MBTABaseTripSensor):
     """Sensor for departure time."""        
 
     @property
@@ -319,8 +366,23 @@ class MBTADepartureTimeSensor(MBTABaseJourneySensor):
         # Use None or other device classes based on the data.
         SensorDeviceClass.TIMESTAMP 
 
-class MBTADepartureDelaySensor(MBTABaseJourneySensor):
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data
+            attributes = {}
+            if trip.departure_deltatime:
+                 attributes["delay"]  = f"{int(round(trip.departure_deltatime.total_seconds() / 60,0))} m"
+            if trip.departure_time_to:
+                 attributes["time to"]  = f"{int(round(trip.departure_time_to.total_seconds() / 60,0))} m"
+            return attributes  # Return the dictionary of attributes
+        return None
+
+class MBTADepartureDelaySensor(MBTABaseTripSensor):
     """Sensor for departure delay."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -341,8 +403,10 @@ class MBTADepartureDelaySensor(MBTABaseJourneySensor):
         """Return the unit of measurement for the sensor."""
         return UnitOfTime.MINUTES
 
-class MBTADepartureTimeToSensor(MBTABaseJourneySensor):
-    """Sensor for departure time to."""        
+class MBTADepartureTimeToSensor(MBTABaseTripSensor):
+    """Sensor for departure time to."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -363,7 +427,7 @@ class MBTADepartureTimeToSensor(MBTABaseJourneySensor):
         """Return the unit of measurement for the sensor."""
         return UnitOfTime.MINUTES
 
-class MBTADepartureStatusSensor(MBTABaseJourneySensor):
+class MBTADepartureStatusSensor(MBTABaseTripSensor):
     """Sensor for departure status."""
 
     @property
@@ -371,12 +435,12 @@ class MBTADepartureStatusSensor(MBTABaseJourneySensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data
-            if trip.departure_time_to:
+            if trip.departure_status:
                 return trip.departure_status
         return "NO LIVE DATA"
 
-#ARRIVAL STOO
-class MBTAArrivalNameSensor(MBTABaseJourneySensor):
+#ARRIVAL STOP
+class MBTAArrivalNameSensor(MBTABaseTripSensor):
     """Sensor for arrival stop name."""
 
     @property
@@ -388,8 +452,26 @@ class MBTAArrivalNameSensor(MBTABaseJourneySensor):
                 return trip.arrival_stop_name
         return None
 
-class MBTAArrivalPlatformSensor(MBTABaseJourneySensor):
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data
+            attributes = {}
+            if trip.arrival_platform_name:
+                 attributes["platform"]  = trip.arrival_platform_name
+            if trip.arrival_status:
+                attributes["status"] = trip.arrival_status
+            else:
+                attributes["status"] = "NO LIVE DATA"
+            return attributes  # Return the dictionary of attributes
+
+        return None
+    
+class MBTAArrivalPlatformSensor(MBTABaseTripSensor):
     """Sensor for arrival platform name.."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -400,7 +482,7 @@ class MBTAArrivalPlatformSensor(MBTABaseJourneySensor):
                 return trip.arrival_platform_name
         return None
 
-class MBTAArrivalTimeSensor(MBTABaseJourneySensor):
+class MBTAArrivalTimeSensor(MBTABaseTripSensor):
     """Sensor for arrival time."""        
 
     @property
@@ -417,9 +499,28 @@ class MBTAArrivalTimeSensor(MBTABaseJourneySensor):
         """Return the device class for the sensor."""
         # Use None or other device classes based on the data.
         SensorDeviceClass.TIMESTAMP 
+    
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data
+            attributes = {}
+            if trip.arrival_deltatime:
+                attributes["delay"] = f"{int(round(trip.arrival_deltatime.total_seconds() / 60,0))} m"
+            if trip.arrival_time_to:
+                attributes["time to"] = f"{int(round(trip.arrival_time_to.total_seconds() / 60,0))} m"
+            if trip.arrival_status:
+                attributes["status"] = trip.arrival_status
+            else:
+                attributes["status"] = "NO LIVE DATA"
+            return attributes  # Return the dictionary of attributes
+        return None
 
-class MBTAArrivalDelaySensor(MBTABaseJourneySensor):
+class MBTAArrivalDelaySensor(MBTABaseTripSensor):
     """Sensor for arrival delay."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -442,8 +543,10 @@ class MBTAArrivalDelaySensor(MBTABaseJourneySensor):
         """Return the unit of measurement for the sensor."""
         return UnitOfTime.MINUTES
 
-class MBTAArrivalTimeToSensor(MBTABaseJourneySensor):
+class MBTAArrivalTimeToSensor(MBTABaseTripSensor):
     """Sensor for arrival time to."""        
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -464,8 +567,10 @@ class MBTAArrivalTimeToSensor(MBTABaseJourneySensor):
         """Return the unit of measurement for the sensor."""
         return UnitOfTime.MINUTES
 
-class MBTAArrivalStatusSensor(MBTABaseJourneySensor):
+class MBTAArrivalStatusSensor(MBTABaseTripSensor):
     """Sensor for arrival status."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
@@ -478,7 +583,7 @@ class MBTAArrivalStatusSensor(MBTABaseJourneySensor):
 
 #ALERTS
 
-class MBTAAlertsSensor(MBTABaseJourneySensor):
+class MBTAAlertsSensor(MBTABaseTripSensor):
     """Sensor for trip alerts."""
 
     @property
@@ -501,15 +606,13 @@ class MBTAAlertsSensor(MBTABaseJourneySensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data
             attributes = {}
-            _LOGGER.debug(attributes)
             _LOGGER.debug(trip.mbta_alerts_ids)
             _LOGGER.debug(trip.mbta_alerts)
             # Add alerts
-            alerts = "-"
             if trip.mbta_alerts:
                 alerts = ", ".join(mbta_alert.short_header for mbta_alert in trip.mbta_alerts)
                 _LOGGER.debug(alerts)
-            attributes["alerts"] = alerts
+                attributes["alerts"] = alerts
             _LOGGER.debug(attributes)
 
             return attributes  # Return the dictionary of attributes
@@ -521,7 +624,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> bool:
     """Set up the sensor platform."""
-    _LOGGER.debug("Setting up MBTA journey sensors")
+    _LOGGER.debug("Setting up MBTA Trip sensors")
 
     # Extract configuration data
     depart_from = entry.data.get("depart_from")
@@ -540,7 +643,7 @@ async def async_setup_entry(
         trips_handler = await TripsHandler.create(departure_stop_name=depart_from, mbta_client=mbta_client,arrival_stop_name=arrive_at, max_trips=1)
 
         # Create and refresh the coordinator
-        coordinator = MBTAJourneyCoordinator(hass, trips_handler)
+        coordinator = MBTATripCoordinator(hass, trips_handler)
 
         _LOGGER.debug("Refreshing coordinator")
 
@@ -584,15 +687,15 @@ async def async_setup_entry(
             MBTAAlertsSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Alerts",icon="mdi:alert-outline"),
         ]
 
-        if route_type == 2: 
+        if route_type == 2:
             mbta_name_sensor = MBTANameSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Train",icon=icon)
             sensors.append(mbta_name_sensor)
 
         # Add the sensors to Home Assistant
         async_add_entities(sensors)
-        _LOGGER.debug("Setting up MBTA journey sensors completed successfully.")
+        _LOGGER.debug("Setting up MBTA Trip sensors completed successfully.")
         return True
 
     except Exception as e:
-        _LOGGER.error(f"Error setting up MBTA journey sensors: {e}")
+        _LOGGER.error(f"Error setting up MBTA Trip sensors: {e}")
         return False
