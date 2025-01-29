@@ -518,6 +518,8 @@ class MBTAAlertsSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             attributes = {}
             _LOGGER.debug(attributes)
+            _LOGGER.debug(trip.mbta_alerts_ids)
+            _LOGGER.debug(trip.mbta_alerts)
             # Add alerts
             alerts = "-"
             if trip.mbta_alerts:
