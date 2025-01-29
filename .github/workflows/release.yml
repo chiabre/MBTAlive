@@ -8,13 +8,13 @@ jobs:
   build:
     name: Build Release ZIP
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      # Checkout the repository
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Create the ZIP file for the release
       - name: Package Custom Component
         run: |
           mkdir -p build
