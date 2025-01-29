@@ -38,8 +38,12 @@ This Home Assistant integration allows to track live MBTA (Massachusetts Bay Tra
    * Go to "Settings" -> "Devices & Services".
    * Click "+ Add Integration".
    * Search for "MBTAlive" and select it.
-   * Follow the on-screen instructions to configure the integration:
-    * both st (this will depend on the specific configuration options your integration requires, such as API keys, usernames, passwords, etc.).
+   * Follow the on-screen instructions to configure the integration using the following information 
+        * Stations names -> to obtain valid names (eg. 'South Station', 'Park Street, etc..) refernce the [MBTA website](https://www.mbta.com/stops/subway)  
+        * MBTA API key -> to generate a personal API Key:
+            * Visit the [MBTA API Documentation Page](https://api-v3.mbta.com/).
+            * Sign up for a free account if you haven't already.
+            * Once logged in, generate a new API key.
 
 ## Updating
 
@@ -58,19 +62,7 @@ Contributions are welcome!  Please open an issue or submit a pull request if you
 
 If you have any questions or need help with the MBTAlive integration, please open an issue on this GitHub repository.
 
-## Code of Conduct
-
-Please note that this project has a [Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project, you agree to abide by its terms.  (Create a `CODE_OF_CONDUCT.md` file if you don't have one already).
-
-## Credits
-
-(Add any credits to libraries, APIs, or other resources you used.)
-
-## License
-
-(Specify the license under which your integration is distributed.  For example: MIT License)
-
-## Getting Your MBTA API Key
+# Getting Your MBTA API Key
 
 To use this integration, you'll need an API key from the Massachusetts Bay Transportation Authority (MBTA). Follow these steps to obtain your key:
 
