@@ -373,7 +373,7 @@ class MBTADepartureStatusSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             if trip.departure_time_to:
                 return trip.departure_status
-        return "No live data"
+        return "NO LIVE DATA"
 
 #ARRIVAL STOO
 class MBTAArrivalNameSensor(MBTABaseJourneySensor):
@@ -474,7 +474,7 @@ class MBTAArrivalStatusSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             if trip.arrival_status:
                 return trip.arrival_status
-        return "No live data"
+        return "NO LIVE DATA"
 
 #ALERTS
 
