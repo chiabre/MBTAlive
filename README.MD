@@ -62,10 +62,3 @@ Contributions are welcome!  Please open an issue or submit a pull request if you
 
 If you have any questions or need help with the MBTAlive integration, please open an issue on this GitHub repository.
 
-# Getting Your MBTA API Key
-
-To use this integration, you'll need an API key from the Massachusetts Bay Transportation Authority (MBTA). Follow these steps to obtain your key:
-
-1. Visit the [MBTA API Documentation Page](https://api-v3.mbta.com/).
-2. Sign up for a free account if you haven't already.
-3. Once logged in, generate a new API key.
