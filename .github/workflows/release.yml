@@ -14,12 +14,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Install dependencies (if needed, adjust for your project)
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
       # Create the ZIP file for the release
       - name: Package Custom Component
         run: |
@@ -34,3 +28,4 @@ jobs:
           gh release upload ${{ github.event.release.id }} build/mbtalive.zip \
             --name mbtalive.zip \
             --contentType application/zip
+
