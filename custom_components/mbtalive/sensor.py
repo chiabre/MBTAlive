@@ -51,10 +51,10 @@ class MBTABaseJourneySensor(SensorEntity):
     """Base class for MBTA journey sensors."""
 
     def __init__(
-        self, 
-        config_entry_name, 
-        config_entry_id, 
-        coordinator, 
+        self,
+        config_entry_name,
+        config_entry_id,
+        coordinator,
         sensor_name,
         icon):
         """Initialize the base sensor."""
@@ -104,22 +104,6 @@ class MBTABaseJourneySensor(SensorEntity):
         """Fetch the latest data from the coordinator."""
         await self._coordinator.async_request_refresh()
 
-    # @property
-    # def extra_state_attributes(self):
-    #     """Return extra attributes."""
-    #     if self._coordinator.data:
-    #         trip: Trip = self._coordinator.data[0]  # Assuming only one journey
-    #         alerts = "-"
-    #         if trip.mbta_alerts:
-    #             alerts = [
-    #                 (f"({i+1}) ") + alert.short_header(i) 
-    #                 for i, alert in enumerate(trip.mbta_alerts)
-    #             ]
-    #         return {
-    #             "Line Color": "#"+trip.route_color,
-    #             "Alerts": alerts if alerts != "-" else "No alerts"
-    #         }
-    #     return None
 
 #TRIP
 class MBTAHeadsignSensor(MBTABaseJourneySensor):
@@ -389,7 +373,7 @@ class MBTADepartureStatusSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             if trip.departure_time_to:
                 return trip.departure_status
-        return None
+        return "NO LIVE DATA"
 
 #ARRIVAL STOO
 class MBTAArrivalNameSensor(MBTABaseJourneySensor):
@@ -490,7 +474,7 @@ class MBTAArrivalStatusSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             if trip.arrival_status:
                 return trip.arrival_status
-        return None
+        return "NO LIVE DATA"
 
 #ALERTS
 
@@ -518,6 +502,8 @@ class MBTAAlertsSensor(MBTABaseJourneySensor):
             trip: Trip = self._coordinator.data
             attributes = {}
             _LOGGER.debug(attributes)
+            _LOGGER.debug(trip.mbta_alerts_ids)
+            _LOGGER.debug(trip.mbta_alerts)
             # Add alerts
             alerts = "-"
             if trip.mbta_alerts:
