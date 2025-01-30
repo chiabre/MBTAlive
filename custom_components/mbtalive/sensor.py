@@ -582,6 +582,8 @@ class MBTADepartureTimeToSensor(MBTABaseTripSensor):
                 time_to = round(trip.departure_time_to.total_seconds() / 60,0)
                 if time_to >= 0:
                     return time_to
+                elif time_to < 0:
+                    return 0
         return None
 
     @property
@@ -780,6 +782,8 @@ class MBTAArrivalTimeToSensor(MBTABaseTripSensor):
                 time_to = round(trip.arrival_time_to.total_seconds() / 60,0)
                 if time_to >= 0:
                     return time_to
+                elif time_to < 0:
+                    return 0
         return None
 
     @property
