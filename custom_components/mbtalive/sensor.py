@@ -16,6 +16,7 @@ from mbtaclient.handlers.trips_handler import TripsHandler
 from mbtaclient.client.mbta_client  import MBTAClient
 from mbtaclient.client.mbta_cache_manager  import MBTACacheManager
 from mbtaclient.trip import Trip
+from mbtaclient.trip_stop import StopType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -578,7 +579,9 @@ class MBTADepartureTimeToSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             if trip.departure_time_to:
-                return round(trip.departure_time_to.total_seconds() / 60,0)
+                time_to = round(trip.departure_time_to.total_seconds() / 60,0)
+                if time_to >= 0:
+                    return time_to
         return None
 
     @property
@@ -774,7 +777,9 @@ class MBTAArrivalTimeToSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             if trip.arrival_time_to:
-                return round(trip.arrival_time_to.total_seconds() / 60,0)
+                time_to = round(trip.arrival_time_to.total_seconds() / 60,0)
+                if time_to >= 0:
+                    return time_to
         return None
 
     @property
@@ -880,7 +885,7 @@ async def async_setup_entry(
         
         _LOGGER.debug(f"Creating TripsHandler for departure from {depart_from} to {arrive_at}")
 
-        trips_handler = await TripsHandler.create(departure_stop_name=depart_from, mbta_client=mbta_client,arrival_stop_name=arrive_at, max_trips=2)
+        trips_handler = await TripsHandler.create(departure_stop_name=depart_from, mbta_client=mbta_client,arrival_stop_name=arrive_at, sort_by=StopType.ARRIVAL, max_trips=2)
 
         # Create and refresh the coordinator
         coordinator = MBTATripCoordinator(hass, trips_handler)
@@ -917,12 +922,12 @@ async def async_setup_entry(
             MBTADepartureTimeSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Time",icon="mdi:clock-start"),
             MBTADepartureDelaySensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Delay",icon="mdi:clock-alert-outline"),
             MBTADepartureTimeToSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Time To Departure",icon="mdi:progress-clock"),
-            MBTADepartureStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Live Update",icon="mdi:wifi"),
+            MBTADepartureStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Live Status",icon="mdi:wifi"),
             MBTAArrivalNameSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="To",icon="mdi:bus-stop-uncovered"),
             MBTAArrivalTimeSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Time",icon="mdi:clock-end"),
             MBTAArrivalDelaySensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Delay",icon="mdi:clock-alert-outline"),
             MBTAArrivalTimeToSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Time To Arrival",icon="mdi:progress-clock"),
-            MBTAArrivalStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Live Update",icon="mdi:wifi"),
+            MBTAArrivalStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Live Status",icon="mdi:wifi"),
             MBTAAlertsSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Alerts",icon="mdi:alert-outline"),
         ]
 
