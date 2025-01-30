@@ -29,7 +29,7 @@ class MBTATripCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name="MBTA Trip Data",
-            update_interval=timedelta(seconds=15),
+            update_interval=timedelta(seconds=30),
         )
         self.trips_handler: TripsHandler = trips_handler
 
