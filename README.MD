@@ -1,5 +1,7 @@
 # MBTALive Sensor for Home Assistant
 
+MBTALive is an independent project and is not affiliated with or endorsed by the Massachusetts Bay Transportation Authority (MBTA).Transit data provided by the MBTA
+
 ## Overview
 
 This Home Assistant integration allows to track live MBTA (Massachusetts Bay Transportation Authority) transits. 
