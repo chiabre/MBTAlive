@@ -16,7 +16,7 @@ from mbtaclient.handlers.trips_handler import TripsHandler
 from mbtaclient.client.mbta_client  import MBTAClient
 from mbtaclient.client.mbta_cache_manager  import MBTACacheManager
 from mbtaclient.trip import Trip
-from mbtaclient.trip_stop import StopType
+from mbtaclient.stop import StopType
 
 _LOGGER = logging.getLogger(__name__)
 
