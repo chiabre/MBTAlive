@@ -1,66 +1,65 @@
-# MBTALive Sensor for Home Assistant
+# MBTALive Sensor for Home Assistant  
 
-MBTALive is an independent project and is not affiliated with or endorsed by the Massachusetts Bay Transportation Authority (MBTA).Transit data provided by the MBTA
+MBTALive is an independent project and is not affiliated with or endorsed by the Massachusetts Bay Transportation Authority (MBTA). Transit data is provided by the MBTA.  
 
-## Overview
+## Overview  
 
-This Home Assistant integration allows to track live MBTA (Massachusetts Bay Transportation Authority) transits. 
+MBTALive is a Home Assistant integration that provides real-time MBTA transit data, including:  
+- **Trains, subways, buses, and ferries**  
+- **Live arrival times, geolocation, platform informations and alerts**  
+- **Customizable tracking for specific trips (departure → arrival stops)**  
+- **Support for multiple routes and lines to find the fastest option**  
+
+Easily monitor your commute and get up-to-date transit information directly in Home Assistant.  
+
+![subway](images/subway.png) ![train](images/train.png)
+![bus](images/bus.png) ![ferry](images/ferry.png)
 
 ## Features
 
-- Real-time MBTA transit schedules and predictions.
-- Configurable departure, and arrival stops.
-- Frequent updates (default scan interval: 30 seconds).
+- Real-time MBTA transit information for trains, subways, buses, and ferries.  
+- Geolocation for trains, subways, and buses.  
+- Information is provided on a **trip basis** (direct connection from departure stop to arrival stop).  
+- Details for two trips:  
+  - **Current trip:** The next trip arriving at the departure stop.  
+  - **Next trip:** The following trip, available in the `next` attribute of each sensor.  
+- Trips support multiple routes (trains, subways, etc.) and multiple lines (e.g., Green Line A, Orange Line), ensuring the best solution at any given moment.  
+- Trips are sorted by **arrival time at the arrival stop** (fastest way to get there).  
+- Frequent updates for accurate trip tracking.  
 
 ## Installation
 
-1. **HACS Installation (if not already installed):**
+### **1. Install HACS (if not already installed)**
+Follow the [HACS installation guide](https://hacs.xyz/).
 
-   If you don't have HACS (Home Assistant Community Store) installed, follow the instructions on the [HACS website](https://hacs.xyz/) to install it.
+### **2. Add MBTAlive to HACS**
+1. Open Home Assistant → HACS.  
+2. Click the three dots (top-right) → "Custom repositories".  
+3. Add `https://github.com/chiabre/MBTAlive` as a **repository** under "Integration".  
+4. Click "Add".  
 
-2. **Add this repository to HACS:**
+### **3. Install MBTAlive**
+1. Find **MBTAlive** in HACS.  
+2. Click "Install" and choose a version (**2.0+ required for HACS**).  
 
-   * Open Home Assistant and go to the HACS section.
-   * Click the three dots in the top right corner and select "Custom repositories".
-   * Add the following URL as a repository: `https://github.com/chiabre/MBTAlive`.
-   * Select the category "Integration".
-   * Click "Add".
-
-3. **Install the MBTAlive integration:**
-
-   * After adding the repository, you should see the MBTAlive integration in the HACS store.
-   * Click on the MBTAlive integration.
-   * Click "Install". 
-   * Choose the version you want to install (only 2.X support hacs).
-   * Click "Install" again.
-
-4. **Configure the integration:**
-
-   * After installation, restart Home Assistant.
-   * Go to "Settings" -> "Devices & Services".
-   * Click "+ Add Integration".
-   * Search for "MBTAlive" and select it.
-   * Follow the on-screen instructions to configure the integration using the following information 
-        * Stations names -> to obtain valid names (eg. 'South Station', 'Park Street, etc..) refernce the [MBTA website](https://www.mbta.com/stops/subway)  
-        * MBTA API key -> to generate a personal API Key:
-            * Visit the [MBTA API Documentation Page](https://api-v3.mbta.com/).
-            * Sign up for a free account if you haven't already.
-            * Once logged in, generate a new API key.
+### **4. Configure the Integration**
+1. Restart Home Assistant.  
+2. Go to **Settings → Devices & Services → + Add Integration**.  
+3. Search for **MBTAlive** and follow the setup steps:  
+   - **Station names**: Use valid names (e.g., "South Station", "Park Street"). See [MBTA Stops](https://www.mbta.com/stops/subway).  
+   - **MBTA API Key**:  
+     1. Visit the [MBTA API Page](https://api-v3.mbta.com/).  
+     2. Sign up and generate a free API key.  
 
 ## Updating
+HACS will notify you of updates. To update:  
+1. Go to **HACS → MBTAlive**.  
+2. Click **Update**.  
+3. Restart Home Assistant.  
 
-When a new version of the MBTAlive integration is released, you will be notified in HACS.  To update:
+## Contributing  
+Contributions are welcome! Open an issue or submit a pull request.  
 
-1. Go to the HACS section in Home Assistant.
-2. Find the MBTAlive integration.
-3. Click the update button.
-4. Restart Home Assistant after the update is complete.
-
-## Contributing
-
-Contributions are welcome!  Please open an issue or submit a pull request if you have any suggestions, bug reports, or improvements.
-
-## Support
-
-If you have any questions or need help with the MBTAlive integration, please open an issue on this GitHub repository.
+## Support  
+For help, open an issue on this GitHub repository.  
 
