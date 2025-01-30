@@ -30,7 +30,7 @@ Trains
 ![train](images/train.png)  
 Buses (No platform)  
 ![bus](images/bus.png)  
-Ferries (No live update)  
+Ferries (No live update, no geolocation)  
 ![ferry](images/ferry.png)
 
 ## Installation
