@@ -344,9 +344,85 @@ class MBTARouteColorSensor(MBTABaseTripSensor):
         
         
 #VEHICLE
+class MBTAVehicleStatusSensor(MBTABaseTripSensor):
+    """Sensor for vehicle status."""
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data[0]
+            if trip.vehicle_status:
+                return trip.vehicle_status
+        return "unavailable"
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data[0]
+            attributes = {}
+            if trip.vehicle_updated_at:
+                attributes["updated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
+            if len(self._coordinator.data) > 0:
+                next = []
+                for item in self._coordinator.data[1:]:
+                    if item.vehicle_status:
+                        next.append(item.vehicle_status)
+                if len(next) >0:
+                    attributes["next"] = next
+            return attributes  # Return the dictionary of attributes
+
+        return None
+
+class MBTAVehicleSpeedSensor(MBTABaseTripSensor):
+    """Sensor for vehicle speed."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
+    
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data[0]
+            if trip.vehicle_speed:
+                return trip.vehicle_speed
+        return "unavailable"
+
+    @property
+    def device_class(self):
+        """Return the device class for the sensor."""
+        return SensorDeviceClass.SPEED
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement for the sensor."""
+        return "mph"
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data[0]
+            attributes = {}
+            if trip.vehicle_updated_at:
+                attributes["updated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
+            if len(self._coordinator.data) > 0:
+                next = []
+                for item in self._coordinator.data[1:]:
+                    if item.vehicle_speed:
+                        next.append(item.vehicle_speed)
+                if len(next) >0:
+                    attributes["next"] = next
+            return attributes  # Return the dictionary of attributes
+
+        return None
+    
 class MBTAVehicleLonSensor(MBTABaseTripSensor):
     """Sensor for vehicle longitude."""
 
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
+    
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -383,6 +459,8 @@ class MBTAVehicleLonSensor(MBTABaseTripSensor):
 class MBTAVehicleLatSensor(MBTABaseTripSensor):
     """Sensor for vehicle longlatitude."""
 
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
+    
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -608,8 +686,7 @@ class MBTADepartureTimeToSensor(MBTABaseTripSensor):
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
-        
-        
+
 class MBTADepartureStatusSensor(MBTABaseTripSensor):
     """Sensor for departure status."""
 
@@ -631,6 +708,33 @@ class MBTADepartureStatusSensor(MBTABaseTripSensor):
             for item in self._coordinator.data[1:]:
                 if item.departure_status:
                     next.append(item.departure_status)
+            if len(next) >0:
+                attributes["next"] = next
+            return attributes  # Return the dictionary of attributes
+
+class MBTADepartureCountdownSensor(MBTABaseTripSensor):
+    """Sensor for departure countdown."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
+    
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data[0]
+            if trip.departure_countdown:
+                return trip.departure_countdown
+        return "unavailable"
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data and len(self._coordinator.data) > 0:
+            attributes = {}
+            next = []
+            for item in self._coordinator.data[1:]:
+                if item.departure_countdown:
+                    next.append(item.departure_countdown)
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -836,6 +940,33 @@ class MBTAArrivalStatusSensor(MBTABaseTripSensor):
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
 
+class MBTAArrivalCountdownSensor(MBTABaseTripSensor):
+    """Sensor for arrival status."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if self._coordinator.data:
+            trip: Trip = self._coordinator.data[0]
+            if trip.arrival_countdown:
+                return trip.arrival_countdown
+        return "unavailable"
+    
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self._coordinator.data and len(self._coordinator.data) > 0:
+            attributes = {}
+            next = []
+            for item in self._coordinator.data[1:]:
+                if item.arrival_countdown:
+                    next.append(item.arrival_countdown)
+            if len(next) >0:
+                attributes["next"] = next
+            return attributes  # Return the dictionary of attributes
+        
 #ALERTS
 class MBTAAlertsSensor(MBTABaseTripSensor):
     """Sensor for trip alerts."""
@@ -915,10 +1046,12 @@ async def async_setup_entry(
             MBTAHeadsignSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Headsign",icon="mdi:sign-direction"),
             MBTADestinationSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Destination",icon="mdi:sign-direction"),
             MBTADirectionSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Direction",icon="mdi:sign-direction"),
-            MBTADurationSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Duration",icon="mdi:timelapse"),  
+            MBTADurationSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Duration",icon="mdi:timelapse"),
             MBTARouteNameSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Line",icon=icon),
             MBTARouteTypeSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Type",icon=icon),
             MBTARouteColorSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Color",icon=icon),
+            MBTAVehicleStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Vehicle Status",icon="mdi:wifi"),
+            MBTAVehicleSpeedSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Vehicle Speed",icon="mdi:speedometer"),
             MBTAVehicleLonSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Vehicle Longitude",icon="mdi:map-marker"),
             MBTAVehicleLatSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Vehicle Latitude",icon="mdi:map-marker"),
             MBTAVehicleLastUpdateSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Vehicle Last Update",icon="mdi:update"),
@@ -926,12 +1059,14 @@ async def async_setup_entry(
             MBTADepartureTimeSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Time",icon="mdi:clock-start"),
             MBTADepartureDelaySensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Delay",icon="mdi:clock-alert-outline"),
             MBTADepartureTimeToSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Time To Departure",icon="mdi:progress-clock"),
-            MBTADepartureStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Live Status",icon="mdi:wifi"),
+            MBTADepartureStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Status",icon="mdi:wifi"),
+            MBTADepartureCountdownSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure MBTA Countdown",icon="mdi:av-timer"),
             MBTAArrivalNameSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="To",icon="mdi:bus-stop-uncovered"),
             MBTAArrivalTimeSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Time",icon="mdi:clock-end"),
             MBTAArrivalDelaySensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Delay",icon="mdi:clock-alert-outline"),
             MBTAArrivalTimeToSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Time To Arrival",icon="mdi:progress-clock"),
-            MBTAArrivalStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Live Status",icon="mdi:wifi"),
+            MBTAArrivalStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Status",icon="mdi:wifi"),
+            MBTAArrivalCountdownSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival MBTA Countdown",icon="mdi:av-timer"),
             MBTAAlertsSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Alerts",icon="mdi:alert-outline"),
         ]
 
