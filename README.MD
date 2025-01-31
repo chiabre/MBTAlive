@@ -5,21 +5,12 @@ MBTALive is an independent project and is not affiliated with or endorsed by the
 ## Overview  
 
 MBTALive is a Home Assistant integration that provides real-time MBTA transit data, including:  
-- **Trains, subways, buses, and ferries**  
-- **Live arrival times, geolocation, platform informations and alerts**  
-- **Customizable tracking for specific trips (departure → arrival stops)**  
-- **Support for multiple routes and lines to find the fastest option**  
+- Trains, subways, buses, and ferries
+- Live arrival times, geolocation, platform informations and alerts
+- Customizable tracking for specific trips (departure → arrival stops)
+- Support for multiple routes and lines to find the fastest option
 
 Easily monitor your commute and get up-to-date transit information directly in Home Assistant.  
-
-Subways  
-![subway](images/subway.png)  
-Trains  
-![train](images/train.png)  
-Buses (No platform)  
-![bus](images/bus.png)  
-Ferries (No live update)  
-![ferry](images/ferry.png)
 
 ## Features
 
@@ -32,6 +23,15 @@ Ferries (No live update)
 - Trips support multiple routes (trains, subways, etc.) and multiple lines (e.g., Green Line A, Orange Line), ensuring the best solution at any given moment.  
 - Trips are sorted by **arrival time at the arrival stop** (fastest way to get there).  
 - Frequent updates for accurate trip tracking.  
+
+Subways  
+![subway](images/subway.png)  
+Trains  
+![train](images/train.png)  
+Buses (No platform)  
+![bus](images/bus.png)  
+Ferries (No live update, no geolocation)  
+![ferry](images/ferry.png)
 
 ## Installation
 
