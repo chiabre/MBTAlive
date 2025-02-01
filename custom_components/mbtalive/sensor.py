@@ -149,11 +149,15 @@ class MBTAHeadsignSensor(MBTABaseTripSensor):
         """Return extra attributes."""
         if self._coordinator.data:
             attributes = {}
-            trip: Trip = self._coordinator.data[0]    
-            if trip.direction_destination:
-                attributes["destination"]  = trip.direction_destination
-            if trip.direction_name:
-                attributes["direction"]  = trip.direction_name
+            trip: Trip = self._coordinator.data[0]
+            if trip.name:
+                attributes["name"]  = trip.name
+            if trip.duration:
+                attributes["duration"]  = f"{int(round(trip.duration/60,0))} min"
+            if trip.destination:
+                attributes["destination"]  = trip.destination
+            if trip.direction:
+                attributes["direction"]  = trip.direction
             if len(self._coordinator.data) > 0:
                 next = []
                 for item in self._coordinator.data[1:]:
@@ -175,8 +179,8 @@ class MBTADestinationSensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
-            if trip.direction_destination:
-                return trip.direction_destination
+            if trip.destination:
+                return trip.destination
         return None
 
     @property
@@ -186,8 +190,8 @@ class MBTADestinationSensor(MBTABaseTripSensor):
             attributes = {}
             next = []
             for item in self._coordinator.data[1:]:
-                if item.direction_destination:
-                    next.append(item.direction_destination)
+                if item.destination:
+                    next.append(item.destination)
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -202,8 +206,8 @@ class MBTADirectionSensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
-            if trip.direction_name:
-                return trip.direction_name
+            if trip.direction:
+                return trip.direction
         return None
 
     @property
@@ -213,8 +217,8 @@ class MBTADirectionSensor(MBTABaseTripSensor):
             attributes = {}
             next = []
             for item in self._coordinator.data[1:]:
-                if item.direction_name:
-                    next.append(item.direction_name)
+                if item.direction:
+                    next.append(item.direction)
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -228,7 +232,7 @@ class MBTADurationSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             if trip.duration:
-                return round(trip.duration.total_seconds() / 60,0)
+                return round(trip.duration / 60,0)
         return None
 
     @property
@@ -249,7 +253,7 @@ class MBTADurationSensor(MBTABaseTripSensor):
             next = []
             for item in self._coordinator.data[1:]:
                 if item.duration:
-                    next.append(round(item.duration.total_seconds() / 60,0))
+                    next.append(f"{round(item.duration / 60,0)}m")
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -326,7 +330,7 @@ class MBTARouteColorSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             if trip.route_color:
-                return f"#{trip.route_color}"
+                return trip.route_color
         return None
 
     @property
@@ -337,7 +341,7 @@ class MBTARouteColorSensor(MBTABaseTripSensor):
             next = []
             for item in self._coordinator.data[1:]:
                 if item.route_color:
-                    next.append(f"#{item.route_color}")
+                    next.append(item.route_color)
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes  
@@ -362,8 +366,16 @@ class MBTAVehicleStatusSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             attributes = {}
+            if trip.vehicle_speed:
+                attributes["speed"]  = trip.vehicle_speed
+            if trip.vehicle_longitude:
+                attributes["longitude"]  = trip.vehicle_longitude                
+            if trip.vehicle_longitude:
+                attributes["latitude"]  = trip.vehicle_latitude  
+            if trip.vehicle_occupancy:
+                attributes["occupancy"]  = trip.vehicle_occupancy                                  
             if trip.vehicle_updated_at:
-                attributes["updated_at"]  = trip.vehicle_updated_at.replace(tzinfo=None)
+                attributes["updated at"]  = trip.vehicle_updated_at           
             if len(self._coordinator.data) > 0:
                 next = []
                 for item in self._coordinator.data[1:]:
@@ -385,8 +397,10 @@ class MBTAVehicleSpeedSensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
-            if trip.vehicle_speed:
-                return trip.vehicle_speed
+            if trip._mbta_vehicle:
+                if trip.vehicle_speed:
+                    return trip.vehicle_speed
+                return 0
         return "unavailable"
 
     @property
@@ -539,10 +553,8 @@ class MBTADepartureNameSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             attributes = {}
-            if trip.departure_platform_name:
-                attributes["platform"]  = trip.departure_platform_name
-            if trip.departure_status:
-                attributes["live update"] = trip.departure_status
+            if trip.departure_platform:
+                attributes["platform"]  = trip.departure_platform
             return attributes  # Return the dictionary of attributes
         return None
     
@@ -554,8 +566,8 @@ class MBTADeparturePlatformSensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
-            if trip.departure_platform_name:
-                return trip.departure_platform_name
+            if trip.departure_platform:
+                return trip.departure_platform
         return None
 
     @property
@@ -565,8 +577,8 @@ class MBTADeparturePlatformSensor(MBTABaseTripSensor):
             attributes = {}
             next = []
             for item in self._coordinator.data[1:]:
-                if item.departure_platform_name:
-                    next.append(item.departure_platform_name)
+                if item.departure_platform:
+                    next.append(item.departure_platform)
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -580,7 +592,7 @@ class MBTADepartureTimeSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             if trip.departure_time:
-                return trip.departure_time.replace(tzinfo=None)
+                return trip.departure_time
         return None
 
     @property
@@ -595,15 +607,15 @@ class MBTADepartureTimeSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             attributes = {}
-            if trip.departure_deltatime:
-                 attributes["delay"]  = f"{int(round(trip.departure_deltatime.total_seconds() / 60,0))}m"
+            if trip.departure_delay:
+                 attributes["delay"]  = f"{int(round(trip.departure_delay / 60,0))}m"
             if trip.departure_time_to:
-                 attributes["time to"]  = f"{int(round(trip.departure_time_to.total_seconds() / 60,0))}m"
+                 attributes["time to"]  = f"{int(round(trip.departure_time_to / 60,0))}m"
             if len(self._coordinator.data) > 0:
                 next = []
                 for item in self._coordinator.data[1:]:
                     if item.departure_time:
-                        next.append(item.departure_time.replace(tzinfo=None))
+                        next.append(item.departure_time)
                 if len(next) >0:
                     attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -619,8 +631,8 @@ class MBTADepartureDelaySensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
-            if trip.departure_deltatime:
-                return round(trip.departure_deltatime.total_seconds() / 60,0)
+            if trip.departure_delay:
+                return round(trip.departure_delay / 60,0)
         return None
 
     @property
@@ -640,8 +652,8 @@ class MBTADepartureDelaySensor(MBTABaseTripSensor):
             attributes = {}
             next = []
             for item in self._coordinator.data[1:]:
-                if item.departure_deltatime:
-                    next.append(f"{int(round(item.departure_deltatime.total_seconds() / 60,0))}m")
+                if item.departure_delay:
+                    next.append(f"{int(round(item.departure_delay / 60,0))}m")
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -657,7 +669,7 @@ class MBTADepartureTimeToSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             if trip.departure_time_to:
-                time_to = round(trip.departure_time_to.total_seconds() / 60,0)
+                time_to = round(trip.departure_time_to / 60,0)
                 if time_to >= 0:
                     return time_to
                 elif time_to < 0:
@@ -682,7 +694,7 @@ class MBTADepartureTimeToSensor(MBTABaseTripSensor):
             next = []
             for item in self._coordinator.data[1:]:
                 if item.departure_time_to:
-                    next.append(f"{int(round(item.departure_time_to.total_seconds() / 60,0))}m")
+                    next.append(f"{int(round(item.departure_time_to / 60,0))}m")
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -758,8 +770,8 @@ class MBTAArrivalNameSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             attributes = {}
-            if trip.arrival_platform_name:
-                 attributes["platform"]  = trip.arrival_platform_name
+            if trip.arrival_platform:
+                 attributes["platform"]  = trip.arrival_platform
             if trip.arrival_status:
                 attributes["status"] = trip.arrival_status
             return attributes  # Return the dictionary of attributes
@@ -776,8 +788,8 @@ class MBTAArrivalPlatformSensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
-            if trip.arrival_platform_name:
-                return trip.arrival_platform_name
+            if trip.arrival_platform:
+                return trip.arrival_platform
         return None
     
     @property
@@ -787,8 +799,8 @@ class MBTAArrivalPlatformSensor(MBTABaseTripSensor):
             attributes = {}
             next = []
             for item in self._coordinator.data[1:]:
-                if item.arrival_platform_name:
-                    next.append(item.arrival_platform_name)
+                if item.arrival_platform:
+                    next.append(item.arrival_platform)
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -802,7 +814,7 @@ class MBTAArrivalTimeSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             if trip.arrival_time:
-                return trip.arrival_time.replace(tzinfo=None)
+                return trip.arrival_time
         return None
 
     @property
@@ -817,17 +829,15 @@ class MBTAArrivalTimeSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             attributes = {}
             trip: Trip = self._coordinator.data[0]
-            if trip.arrival_deltatime:
-                attributes["delay"] = f"{int(round(trip.arrival_deltatime.total_seconds() / 60,0))}m"
+            if trip.arrival_delay:
+                attributes["delay"] = f"{int(round(trip.arrival_delay / 60,0))}m"
             if trip.arrival_time_to:
-                attributes["time to"] = f"{int(round(trip.arrival_time_to.total_seconds() / 60,0))}m"
-            if trip.arrival_status:
-                attributes["status"] = trip.arrival_status
+                attributes["time to"] = f"{int(round(trip.arrival_time_to / 60,0))}m"
             if len(self._coordinator.data) > 0:
                 next = []
                 for item in self._coordinator.data[1:]:
                     if item.arrival_time:
-                        next.append(item.arrival_time.replace(tzinfo=None))
+                        next.append(item.arrival_time)
                 if len(next) >0:
                     attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -843,8 +853,8 @@ class MBTAArrivalDelaySensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
-            if trip.arrival_deltatime:
-                return round(trip.arrival_deltatime.total_seconds() / 60,0)
+            if trip.arrival_delay:
+                return round(trip.arrival_delay / 60,0)
             else:
                 return 0  # Default value when there's no delay
         return None
@@ -866,8 +876,8 @@ class MBTAArrivalDelaySensor(MBTABaseTripSensor):
             attributes = {}
             next = []
             for item in self._coordinator.data[1:]:
-                if item.arrival_deltatime:
-                    next.append(round(item.arrival_deltatime.total_seconds() / 60,0))
+                if item.arrival_delay:
+                    next.append(round(item.arrival_delay / 60,0))
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -883,7 +893,7 @@ class MBTAArrivalTimeToSensor(MBTABaseTripSensor):
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
             if trip.arrival_time_to:
-                time_to = round(trip.arrival_time_to.total_seconds() / 60,0)
+                time_to = round(trip.arrival_time_to / 60,0)
                 if time_to >= 0:
                     return time_to
                 elif time_to < 0:
@@ -908,7 +918,7 @@ class MBTAArrivalTimeToSensor(MBTABaseTripSensor):
             next = []
             for item in self._coordinator.data[1:]:
                 if item.arrival_time_to:
-                    next.append(round(item.arrival_time_to.total_seconds() / 60,0))
+                    next.append(round(item.arrival_time_to / 60,0))
             if len(next) >0:
                 attributes["next"] = next
             return attributes  # Return the dictionary of attributes
@@ -976,8 +986,8 @@ class MBTAAlertsSensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         if self._coordinator.data:
             trip: Trip = self._coordinator.data[0]
-            if trip.mbta_alerts:
-                return len(trip.mbta_alerts)
+            if trip.alerts:
+                return len(trip.alerts)
         return 0
 
     @property
@@ -992,9 +1002,8 @@ class MBTAAlertsSensor(MBTABaseTripSensor):
             trip: Trip = self._coordinator.data[0]
             attributes = {}
             # Add alerts
-            if trip.mbta_alerts:
-                alerts = ", ".join(mbta_alert.short_header for mbta_alert in trip.mbta_alerts)
-                attributes["alerts"] = alerts
+            if trip.alerts:
+                attributes["alerts"] = " # ".join(trip.alerts)
             return attributes  # Return the dictionary of attributes
         return None
 
@@ -1021,7 +1030,6 @@ async def async_setup_entry(
         _LOGGER.debug(f"Creating TripsHandler for departure from {depart_from} to {arrive_at}")
 
         trips_handler = await TripsHandler.create(departure_stop_name=depart_from, mbta_client=mbta_client,arrival_stop_name=arrive_at, sort_by=StopType.ARRIVAL, max_trips=2)
-
         # Create and refresh the coordinator
         coordinator = MBTATripCoordinator(hass, trips_handler)
 
@@ -1031,7 +1039,7 @@ async def async_setup_entry(
 
         # Get the first trip and determine the route icon
         trip: Trip = coordinator.data[0]
-        route_type = trip.route_type
+        route_type = trip._mbta_route.type
         icon = {
             0: "mdi:subway-variant",
             1: "mdi:subway-variant",
