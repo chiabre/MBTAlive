@@ -59,6 +59,9 @@ class MBTABaseTripSensor(SensorEntity):
         sensor_name,
         icon):
         """Initialize the base sensor."""
+        
+        if isinstance(self,MBTATripSensor) or isinstance(self,MBTANextTripSensor):
+            sensor_name = "trip"
 
         self._attr_config_entry_id = config_entry_id  # Link entity to config entry
         self._coordinator = coordinator
@@ -108,7 +111,7 @@ class MBTABaseTripSensor(SensorEntity):
 
 #TRIP
 
-class MBTATrip(MBTABaseTripSensor):
+class MBTATripSensor(MBTABaseTripSensor):
     """Sensor for the trip."""
 
     @property
@@ -153,7 +156,7 @@ class MBTATrip(MBTABaseTripSensor):
             return attributes  # Return the dictionary of attributes
         return None
 
-class MBTANextTrip(MBTABaseTripSensor):
+class MBTANextTripSensor(MBTABaseTripSensor):
     """Sensor for the trip."""
 
     @property
@@ -1162,8 +1165,8 @@ async def async_setup_entry(
         # Create sensors
         _LOGGER.debug("Creating sensors for trip data")
         sensors = [
-            MBTATrip(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name=trip,icon=icon),
-            MBTANextTrip(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name=f"{trip} (next)",icon=icon),
+            MBTATripSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name=trip,icon=icon),
+            MBTANextTripSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name=f"{trip} (next)",icon=icon),
             MBTAHeadsignSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Headsign",icon="mdi:sign-direction"),
             MBTADestinationSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Destination",icon="mdi:sign-direction"),
             MBTADirectionSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Direction",icon="mdi:sign-direction"),
