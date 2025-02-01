@@ -61,7 +61,7 @@ class MBTABaseTripSensor(SensorEntity):
         """Initialize the base sensor."""
         
         if isinstance(self,MBTATripSensor) or isinstance(self,MBTANextTripSensor):
-            entity_id = f"{sensor_name}_trip"
+            entity_id = f"{sensor_name}"
         else:
             entity_id = f"({config_entry_name}_{sensor_name})"
 
