@@ -61,7 +61,9 @@ class MBTABaseTripSensor(SensorEntity):
         """Initialize the base sensor."""
         
         if isinstance(self,MBTATripSensor) or isinstance(self,MBTANextTripSensor):
-            sensor_name = "trip"
+            entity_id = f"{sensor_name}_trip"
+        else:
+            entity_id = f"({config_entry_name}_{sensor_name})"
 
         self._attr_config_entry_id = config_entry_id  # Link entity to config entry
         self._coordinator = coordinator
@@ -69,7 +71,7 @@ class MBTABaseTripSensor(SensorEntity):
         self._sensor_name = sensor_name
         self.entity_id = generate_entity_id(
             "sensor.{}",
-            f"({config_entry_name}_{sensor_name})",
+            entity_id,
             hass=self._coordinator.hass
         )
         self._attr_device_info = {
@@ -1183,13 +1185,13 @@ async def async_setup_entry(
             MBTADepartureTimeSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Time",icon="mdi:clock-start"),
             MBTADepartureDelaySensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Delay",icon="mdi:clock-alert-outline"),
             MBTADepartureTimeToSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Time To Departure",icon="mdi:progress-clock"),
-            MBTADepartureStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Status",icon="mdi:wifi"),
+            MBTADepartureStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Status",icon="mdi:rss"),
             MBTADepartureCountdownSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure MBTA Countdown",icon="mdi:av-timer"),
             MBTAArrivalNameSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="To",icon="mdi:bus-stop-uncovered"),
             MBTAArrivalTimeSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Time",icon="mdi:clock-end"),
             MBTAArrivalDelaySensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Delay",icon="mdi:clock-alert-outline"),
             MBTAArrivalTimeToSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Time To Arrival",icon="mdi:progress-clock"),
-            MBTAArrivalStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Status",icon="mdi:wifi"),
+            MBTAArrivalStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Status",icon="mdi:rss"),
             MBTAArrivalCountdownSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival MBTA Countdown",icon="mdi:av-timer"),
             MBTAAlertsSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Alerts",icon="mdi:alert-outline"),
         ]
