@@ -137,6 +137,7 @@ class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
 
 #TRIP
 
+
 class MBTATripSensor(MBTABaseTripSensor):
     """Sensor for the trip."""
 
@@ -1192,6 +1193,8 @@ class MBTAArrivalCountdownSensor(MBTABaseTripSensor):
 #ALERTS
 class MBTAAlertsSensor(MBTABaseTripSensor):
     """Sensor for trip alerts."""
+
+    _attr_entity_registry_enabled_default = False  # This keeps the sensor disabled by default
 
     @property
     def state(self):
