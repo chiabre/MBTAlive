@@ -7,7 +7,7 @@
     "iot_class": "cloud_polling",
     "loggers": ["MBTALive"],
     "dependencies": [],
-    "requirements": ["MBTAclient>=1.1.13"],
+    "requirements": ["MBTAclient>=1.1.14"],
     "version": "2.0.13",
     "config_flow": true
   }
