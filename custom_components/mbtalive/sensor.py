@@ -26,7 +26,7 @@ class MBTATripCoordinator(DataUpdateCoordinator):
     """Coordinator to manage fetching trips data for sensors."""
 
     UPDATE_INTERVAL = timedelta(seconds=20)
-    
+
     def __init__(self, hass, trips_handler: TripsHandler):
         """Initialize the coordinator."""
         super().__init__(
@@ -36,31 +36,45 @@ class MBTATripCoordinator(DataUpdateCoordinator):
             update_interval=self.UPDATE_INTERVAL,
         )
         self.trips_handler: TripsHandler = trips_handler
+        self._last_successful_data = None  # Initialize with no data
+        self._update_in_progress = False  # Flag to track if an update is in progress
 
     async def _async_update_data(self):
         """Fetch data from the MBTA API while preserving the last known good data."""
+        if self._last_successful_data is not None:
+            _LOGGER.debug("Returning old data while update is in progress.")
+            # Ensure we're not re-triggering the update while the previous one is still running
+            if self._update_in_progress:
+                return self._last_successful_data  # Use the old data during the update process
+
+        # Mark the update as in progress
+        self._update_in_progress = True
+
         try:
             _LOGGER.debug("Fetching trips data from MBTA API")
             trips: list[Trip] = await self.trips_handler.update()
-            if not trips:
-                raise UpdateFailed("No trips returned from the MBTA API.")
 
-            self._last_successful_data = trips  # Update the last known data
-            return trips  # Return new data
+            _LOGGER.debug(trips)
+            
+            if not trips:  # No trips available (e.g., end of service)
+                _LOGGER.warning("No trips available—marking data as unavailable.")
+                return None  # No valid data, sensors will show unavailable
+
+            self._last_successful_data = trips  # Store valid data
+            return trips  # Return new valid data
 
         except UpdateFailed as e:
-            _LOGGER.error(f"Update failed: {e}")
-            if self._last_successful_data:
-                _LOGGER.warning("Using last known good data instead.")
-                return self._last_successful_data  # Keep old data instead of making sensors unavailable
-            raise
+            _LOGGER.error("Update failed: %s", e)
+            return None  # Mark sensors as unavailable on failure
 
         except Exception as err:
-            _LOGGER.error(f"Error fetching trips data: {err}")
-            if self._last_successful_data:
-                _LOGGER.warning("Using last known good data instead.")
-                return self._last_successful_data
-            raise UpdateFailed(f"Error fetching trips data: {err}")
+            _LOGGER.error("Error fetching trips data: %s", err)
+            return None  # Mark sensors as unavailable on error
+
+        finally:
+            # Mark the update as not in progress once done
+            self._update_in_progress = False
+
 
 class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
     """Base class for MBTA trip sensors."""
@@ -71,11 +85,12 @@ class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
         config_entry_id,
         coordinator: MBTATripCoordinator,
         sensor_name,
-        icon):
+        icon
+    ):
         """Initialize the base sensor."""
         super().__init__(coordinator)  # Ensures entity is linked to the coordinator
         
-        if isinstance(self,MBTATripSensor) or isinstance(self,MBTANextTripSensor):
+        if isinstance(self, MBTATripSensor) or isinstance(self, MBTANextTripSensor):
             entity_id = f"{sensor_name}"
         else:
             entity_id = f"({config_entry_name}_{sensor_name})"
@@ -114,6 +129,7 @@ class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self):
         """Return if the sensor is available."""
+        # Sensor is available if the coordinator update was successful
         return self._coordinator.last_update_success
 
     @property
@@ -121,19 +137,17 @@ class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
         """Return the icon for the sensor."""
         return self._attr_icon
 
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        data = self.coordinator.data or self.coordinator._last_successful_data  # Use last known good data
-        if data:
-            trip: Trip = data[0]
-            if trip.departure_countdown:
-                return trip.departure_countdown
-        return "unavailable"  # If no data ever existed, return unavailable
+    async def async_added_to_hass(self):
+        """Called when the sensor is added to Home Assistant."""
+        await super().async_added_to_hass()
+        # Register the sensor to listen for updates from the coordinator
+        self._coordinator.async_add_listener(self.async_write_ha_state)
 
     async def async_update(self):
         """Ensure sensor updates when the coordinator updates."""
-        self.async_write_ha_state()  # Ensures UI update when coordinator updates
+        # The coordinator triggers updates automatically, so no need to call async_write_ha_state manually here
+        pass
+
 
 #TRIP
 
@@ -159,21 +173,23 @@ class MBTATripSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             attributes = {}
             if trip.departure_stop_name:
-                attributes["from"]  = trip.departure_stop_name  
+                attributes["from"] = trip.departure_stop_name
             if trip.arrival_stop_name:
-                attributes["to"]  = trip.arrival_stop_name  
+                attributes["to"] = trip.arrival_stop_name
             if trip.headsign:
-                attributes["headsign"]  = trip.headsign               
+                attributes["headsign"] = trip.headsign
             if trip.name:
-                attributes["train"]  = trip.name
+                attributes["train"] = trip.name
+            if trip.vehicle_status:
+                attributes["status"] = trip.vehicle_status
             if trip.duration:
-                attributes["duration"]  =  f"{int(round(trip.duration / 60,0))}m"
+                attributes["duration"] = f"{int(round(trip.duration / 60,0))}m"
             if trip.departure_platform:
-                attributes["platform"]  = trip.departure_platform
+                attributes["departure platform"] = trip.departure_platform
             if trip.departure_time:
-                 attributes["time"]  = trip.departure_time
+                attributes["departure time"] = trip.departure_time
             if trip.departure_delay:
-                 attributes["delay"]  = f"{int(round(trip.departure_delay / 60,0))}m"
+                 attributes["reparture delay"] = f"{int(round(trip.departure_delay / 60,0))}m"
             if trip.route_name:
                 attributes["line"]  = trip.route_name
             if trip.route_description:
@@ -213,21 +229,23 @@ class MBTANextTripSensor(MBTABaseTripSensor):
             trip: Trip = data[1]
             attributes = {}
             if trip.departure_stop_name:
-                attributes["from"]  = trip.departure_stop_name  
+                attributes["from"] = trip.departure_stop_name
             if trip.arrival_stop_name:
-                attributes["to"]  = trip.arrival_stop_name  
+                attributes["to"] = trip.arrival_stop_name
             if trip.headsign:
-                attributes["headsign"]  = trip.headsign               
+                attributes["headsign"] = trip.headsign
             if trip.name:
-                attributes["train"]  = trip.name
+                attributes["train"] = trip.name
+            if trip.vehicle_status:
+                attributes["status"] = trip.vehicle_status
             if trip.duration:
-                attributes["duration"]  =  f"{int(round(trip.duration / 60,0))}m"
+                attributes["duration"] = f"{int(round(trip.duration / 60,0))}m"
             if trip.departure_platform:
-                attributes["platform"]  = trip.departure_platform
+                attributes["departure platform"] = trip.departure_platform
             if trip.departure_time:
-                 attributes["time"]  = trip.departure_time
+                attributes["departure time"] = trip.departure_time
             if trip.departure_delay:
-                 attributes["delay"]  = f"{int(round(trip.departure_delay / 60,0))}m"
+                 attributes["reparture delay"] = f"{int(round(trip.departure_delay / 60,0))}m"
             if trip.route_name:
                 attributes["line"]  = trip.route_name
             if trip.route_description:
@@ -253,7 +271,7 @@ class MBTATrainSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.name:
                 return trip.name
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -282,7 +300,7 @@ class MBTAHeadsignSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.headsign:
                 return trip.headsign
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -323,7 +341,7 @@ class MBTADestinationSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.destination:
                 return trip.destination
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -352,7 +370,7 @@ class MBTADirectionSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.direction:
                 return trip.direction
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -381,7 +399,7 @@ class MBTADurationSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.duration:
                 return round(trip.duration / 60,0)
-        return None
+        return "unavailable"
 
     @property
     def device_class(self):
@@ -421,7 +439,7 @@ class MBTARouteNameSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.route_name:
                 return trip.route_name
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -442,7 +460,6 @@ class MBTARouteNameSensor(MBTABaseTripSensor):
                 if len(next) >0:
                     attributes["next"] = next
             return attributes  # Return the dictionary of attributes
-
         return None
 
 class MBTARouteTypeSensor(MBTABaseTripSensor):
@@ -458,7 +475,7 @@ class MBTARouteTypeSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.route_description:
                 return trip.route_description
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -487,7 +504,7 @@ class MBTARouteColorSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.route_color:
                 return trip.route_color
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -715,7 +732,7 @@ class MBTADepartureNameSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.departure_stop_name:
                 return trip.departure_stop_name
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -744,7 +761,7 @@ class MBTADeparturePlatformSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.departure_platform:
                 return trip.departure_platform
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -773,7 +790,7 @@ class MBTADepartureTimeSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.departure_time:
                 return trip.departure_time
-        return None
+        return "unavailable"
 
     @property
     def device_class(self):
@@ -817,7 +834,7 @@ class MBTADepartureDelaySensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.departure_delay:
                 return round(trip.departure_delay / 60,0)
-        return None
+        return "unavailable"
 
     @property
     def device_class(self):
@@ -860,7 +877,7 @@ class MBTADepartureTimeToSensor(MBTABaseTripSensor):
                     return time_to
                 elif time_to < 0:
                     return 0
-        return None
+        return "unavailable"
 
     @property
     def device_class(self):
@@ -958,7 +975,7 @@ class MBTAArrivalNameSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.arrival_stop_name:
                 return trip.arrival_stop_name
-        return None
+        return "unavailable"
 
     @property
     def extra_state_attributes(self):
@@ -988,7 +1005,7 @@ class MBTAArrivalPlatformSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.arrival_platform:
                 return trip.arrival_platform
-        return None
+        return "unavailable"
     
     @property
     def extra_state_attributes(self):
@@ -1017,7 +1034,7 @@ class MBTAArrivalTimeSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.arrival_time:
                 return trip.arrival_time
-        return None
+        return "unavailable"
 
     @property
     def device_class(self):
@@ -1063,7 +1080,7 @@ class MBTAArrivalDelaySensor(MBTABaseTripSensor):
                 return round(trip.arrival_delay / 60,0)
             else:
                 return 0  # Default value when there's no delay
-        return None
+        return "unavailable"
 
     @property
     def device_class(self):
@@ -1106,7 +1123,7 @@ class MBTAArrivalTimeToSensor(MBTABaseTripSensor):
                     return time_to
                 elif time_to < 0:
                     return 0
-        return None
+        return "unavailable"
 
     @property
     def device_class(self):
@@ -1204,7 +1221,7 @@ class MBTAAlertsSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.alerts:
                 return len(trip.alerts)
-        return 0
+        return "unavailable"
 
     @property
     def unit_of_measurement(self):
@@ -1299,7 +1316,7 @@ async def async_setup_entry(
         if route_type != 3:
             sensors.append( MBTADeparturePlatformSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Departure Platform",icon="mdi:bus-stop-uncovered"))
             sensors.append(MBTAArrivalPlatformSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Arrival Platform",icon="mdi:bus-stop-uncovered"))
-            sensors.append(MBTAVehicleStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Status",icon="mdi:signal-variant"))
+            sensors.append(MBTAVehicleStatusSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Status",icon="mdi:map-marker-radius"))
             sensors.append(MBTAVehicleSpeedSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Speed",icon="mdi:speedometer"))
             sensors.append(MBTAVehicleLonSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Longitude",icon="mdi:map-marker"))
             sensors.append(MBTAVehicleLatSensor(config_entry_name=name,config_entry_id=config_entry_id,coordinator=coordinator,sensor_name="Latitude",icon="mdi:map-marker"))
