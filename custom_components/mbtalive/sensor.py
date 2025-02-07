@@ -35,12 +35,18 @@ class MBTATripCoordinator(DataUpdateCoordinator):
             name="MBTA Trip Data",
             update_interval=self.UPDATE_INTERVAL,
         )
+        
+        _LOGGER.debug("Initializing data update coordinator")
+        
         self.trips_handler: TripsHandler = trips_handler
         self._last_successful_data = None  # Initialize with no data
         self._update_in_progress = False  # Flag to track if an update is in progress
 
     async def _async_update_data(self):
         """Fetch data from the MBTA API while preserving the last known good data during updates."""
+        
+        _LOGGER.debug("Starting async data update")
+        
         if self._last_successful_data is not None and self._update_in_progress:
             _LOGGER.debug("Update in progress—temporarily using last known good data.")
             return self._last_successful_data  # Provide temporary data while updating
@@ -49,10 +55,8 @@ class MBTATripCoordinator(DataUpdateCoordinator):
         self._update_in_progress = True
 
         try:
-            _LOGGER.debug("Fetching trips data from MBTA API")
+            _LOGGER.debug("Updating MBTA trips data")
             trips: list[Trip] = await self.trips_handler.update()
-
-            _LOGGER.debug(trips)
 
             if not trips:  # No trips available (e.g., end of service)
                 _LOGGER.warning("No trips available—marking data as unavailable.")
@@ -60,6 +64,7 @@ class MBTATripCoordinator(DataUpdateCoordinator):
                 return None  # Mark sensors as unavailable
 
             self._last_successful_data = trips  # Store valid data
+            _LOGGER.debug("MBTA trips data update complete")
             return trips  # Return new valid data
 
         except UpdateFailed as e:
@@ -72,6 +77,7 @@ class MBTATripCoordinator(DataUpdateCoordinator):
 
         finally:
             self._update_in_progress = False  # Reset update flag
+            _LOGGER.debug("Async data update complete")
 
 class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
     """Base class for MBTA trip sensors."""
@@ -85,6 +91,8 @@ class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
         icon
     ):
         """Initialize the base sensor."""
+        _LOGGER.debug("Initializing sensor: %s", sensor_name)
+        
         super().__init__(coordinator)  # Ensures entity is linked to the coordinator
         
         if isinstance(self, MBTATripSensor) or isinstance(self, MBTANextTripSensor):
@@ -1249,9 +1257,12 @@ async def async_setup_entry(
             sort_by=StopType.ARRIVAL,
             max_trips=2)
         # Create and refresh the coordinator
+        
+        _LOGGER.debug(f"Setting up data update coordinator")
+        
         coordinator = MBTATripCoordinator(hass, trips_handler)
 
-        _LOGGER.debug("Refreshing data")
+        _LOGGER.debug("Updating trips data")
 
         await coordinator.async_config_entry_first_refresh()
 
