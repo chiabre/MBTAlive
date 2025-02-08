@@ -3,23 +3,32 @@
     "step": {
       "user": {
         "title": "MBTA Live Configuration",
-        "description": "Set up your MBTA Live integration.",
+        "description": "Set up your MBTA Live integration by specifying the departure and arrival stations, along with your API key. You can also optionally define the number of trips to track and, for Commuter Rail only, a specific train number. If a train number is provided, the trip will be tracked until arrival. If you have previously set up an API key, it will be pre-filled for your convenience. For instructions on retrieving stop names, train numbers, and API keys, visit the project's GitHub page.",
         "data": {
-          "depart_from": "Departure Station (Required)",
-          "arrive_at": "Arrival Station (Required)",
-          "api_key": "API Key (Required)"
+          "depart_from": "Departure stop (Required)",
+          "arrive_at": "Arrival stop (Required)",
+          "api_key": "API Key (Required)", 
+          "max_trips": "Number of subsequent trips to track (Optional)",
+          "train": "Train number (Optional)"
         }
       }
     },
     "error": {
-      "stop_not_found_depart_from": "Departure stop not found.",
-      "stop_not_found_arrive_at": "Arrival stop not found.",
-      "api_key_error": "Invalid API key or connection issue."
+      "stop_not_found_depart_from": "The departure stop could not be found. Please check the station name.",
+      "stop_not_found_arrive_at": "The arrival stop could not be found. Please check the station name.",
+      "stop_not_found": "One or more stops are invalid. Please check the station names.",
+      "train_not_found": "The train between the provided stops could not be found in the MBTA scheduling for the next 7 days. Please check the train number.",
+      "api_key_invalid": "Invalid API key. Please enter a valid MBTA API key.",
+      "api_key_error": "There was an issue with the API connection. Please check your API key and internet connection.",
+      "invalid_input": "Invalid input provided. Please check your entries."
     }
   },
   "config_flow": {
-    "depart_from": "Departure Stop (Required)",
-    "arrive_at": "Arrival Stop (Required)",
-    "api_key": "API Key (Required)"
+    "depart_from": "Departure stop (Required)",
+    "arrive_at": "Arrival stop (Required)",
+    "api_key": "API Key (Required)",
+    "max_trips": "Number of subsequent trips to track (Optional)",
+    "train": "Train number (Optional)",
+    "description": "If an API key has already been provided, this field will be pre-populated. To continue using the existing API key, leave the field unchanged. To update it, simply enter the new value."
   }
 }

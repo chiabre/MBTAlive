@@ -1,5 +1,6 @@
 from datetime import timedelta
 import logging
+from typing import Union
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -14,11 +15,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from homeassistant.helpers.entity import generate_entity_id
 
+from mbtaclient.handlers.trains_handler import TrainsHandler
 from mbtaclient.handlers.trips_handler import TripsHandler
 from mbtaclient.client.mbta_client  import MBTAClient
 from mbtaclient.client.mbta_cache_manager  import MBTACacheManager
 from mbtaclient.trip import Trip
-from mbtaclient.stop import StopType
+
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,7 +30,7 @@ class MBTATripCoordinator(DataUpdateCoordinator):
 
     UPDATE_INTERVAL = timedelta(seconds=20)
 
-    def __init__(self, hass, trips_handler: TripsHandler):
+    def __init__(self, hass, trips_handler: Union[TripsHandler, TrainsHandler]):
         """Initialize the coordinator."""
         super().__init__(
             hass,
@@ -38,7 +41,7 @@ class MBTATripCoordinator(DataUpdateCoordinator):
         
         _LOGGER.debug("Initializing data update coordinator")
         
-        self.trips_handler: TripsHandler = trips_handler
+        self.trips_handler: Union[TripsHandler, TrainsHandler] = trips_handler
         self._last_successful_data = None  # Initialize with no data
         self._update_in_progress = False  # Flag to track if an update is in progress
 
@@ -99,22 +102,28 @@ class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
             entity_id = f"{sensor_name}"
         else:
             entity_id = f"({config_entry_name}_{sensor_name})"
+            
+        # Ensure unique ID is stable across reboots
+        self._attr_unique_id = f"{config_entry_id}_{sensor_name}".lower().replace(' ', '_')
+        
+        #entity_id = f"{config_entry_id}_{sensor_name}"
 
-        self._attr_config_entry_id = config_entry_id  # Link entity to config entry
-        self._coordinator = coordinator
-        self._attr_unique_id = f"{config_entry_id}-{sensor_name}"  # Unique ID for the entity
         self._sensor_name = sensor_name
+        self._coordinator = coordinator
+        self._attr_config_entry_id = config_entry_id  # Link entity to config entry
         self.entity_id = generate_entity_id(
             "sensor.{}",
-            entity_id,
+            f"mbta_{entity_id}",
             hass=self._coordinator.hass
         )
         self._attr_device_info = {
-            "identifiers": {(config_entry_id,)},
+            "identifiers": {(DOMAIN, config_entry_id)}, 
             "name": config_entry_name,
+            "manufacturer": "MBTA",
             "model": "MBTA Live Trip Info",
         }
-        self._attr_icon = icon 
+        self._attr_icon = icon
+
 
     @property
     def device_class(self):
@@ -185,6 +194,8 @@ class MBTATripSensor(MBTABaseTripSensor):
                 attributes["type"]  = trip.route_description
             if trip.route_name:
                 attributes["line"]  = trip.route_name
+            if trip.route_color:
+                attributes["color"] = trip.route_color
             if trip.headsign:
                 attributes["headsign"] = trip.headsign
             if trip.duration:
@@ -205,12 +216,16 @@ class MBTATripSensor(MBTABaseTripSensor):
                  attributes["departure_time_to"] = f"{int(round(trip.departure_time_to / 60,0))}m"
             if trip.departure_delay:
                  attributes["departure_delay"] = f"{int(round(trip.departure_delay / 60,0))}m"
+            if trip.arrival_countdown:
+                attributes["arrival_countdown"] = trip.arrival_countdown  
+            if trip.arrival_platform:
+                attributes["arrival_platform"] = trip.arrival_platform          
             if trip.arrival_time:
                 attributes["arrival_time"] = trip.arrival_time
             if trip.arrival_time_to:
                  attributes["arrival_time_to"] = f"{int(round(trip.arrival_time_to / 60,0))}m"
-            if trip.route_color:
-                attributes["color"] = trip.route_color
+            if trip.arrival_delay:
+                 attributes["arrival_delay"] = f"{int(round(trip.arrival_delay / 60,0))}m"
             attributes["alerts"] = []
             if trip.alerts:
                 attributes["alerts"] = " # ".join(trip.alerts)
@@ -253,6 +268,8 @@ class MBTANextTripSensor(MBTABaseTripSensor):
                     attributes["type"]  = trip.route_description
                 if trip.route_name:
                     attributes["line"]  = trip.route_name
+                if trip.route_color:
+                    attributes["color"] = trip.route_color
                 if trip.headsign:
                     attributes["headsign"] = trip.headsign
                 if trip.duration:
@@ -273,12 +290,16 @@ class MBTANextTripSensor(MBTABaseTripSensor):
                     attributes["departure_time_to"] = f"{int(round(trip.departure_time_to / 60,0))}m"
                 if trip.departure_delay:
                     attributes["departure_delay"] = f"{int(round(trip.departure_delay / 60,0))}m"
+                if trip.arrival_countdown:
+                    attributes["arrival_countdown"] = trip.arrival_countdown  
+                if trip.arrival_platform:
+                    attributes["arrival_platform"] = trip.arrival_platform          
                 if trip.arrival_time:
                     attributes["arrival_time"] = trip.arrival_time
                 if trip.arrival_time_to:
                     attributes["arrival_time_to"] = f"{int(round(trip.arrival_time_to / 60,0))}m"
-                if trip.route_color:
-                    attributes["color"] = trip.route_color
+                if trip.arrival_delay:
+                    attributes["arrival_delay"] = f"{int(round(trip.arrival_delay / 60,0))}m"
                 attributes["alerts"] = []
                 if trip.alerts:
                     attributes["alerts"] = " # ".join(trip.alerts)
@@ -1233,37 +1254,67 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> bool:
-    """Set up the sensor platform."""
-    _LOGGER.debug("Setting up MBTA Trip sensors")
 
+    """
+    Set up the MBTA integration from a config entry.
+
+    This function retrieves the MBTAClient instance created (or updated) in the config flow.
+    If it doesn't exist (for example, after a restart), it creates a new instance using the
+    API key from the config entry.
+    """
+        
     # Extract configuration data
     depart_from = entry.data.get("depart_from")
     arrive_at = entry.data.get("arrive_at")
     api_key = entry.data.get("api_key")
+    max_trips = entry.data.get("max_trips")
+    train = entry.data.get("train")
     name = entry.title
     config_entry_id = entry.entry_id
+    
+    _LOGGER.debug("Setting up MBTA device")
+
+    # Ensure our integration data container exists.
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+
+    # Retrieve the MBTAClient from hass.data.
+    client: MBTAClient = hass.data[DOMAIN].get("mbta_client")
+    if not client:
+        _LOGGER.debug("MBTAClient not found; creating new instance with API key: %s", api_key)
+        client: MBTAClient = MBTAClient(api_key=api_key, cache_manager=MBTACacheManager())
+        hass.data[DOMAIN]["mbta_client"] = client
+    else:
+        _LOGGER.debug("Reusing existing MBTAClient with API key: %s", client._api_key)
 
     try:
-        _LOGGER.debug(f"Initializing MBTAClient with API key {api_key}")
-
-        mbta_client = MBTAClient(api_key=api_key,cache_manager=MBTACacheManager())
-
-        _LOGGER.debug(f"Creating TripsHandler for trips from {depart_from} to {arrive_at}")
-
-        trips_handler = await TripsHandler.create(
-            departure_stop_name=depart_from,
-            mbta_client=mbta_client,
-            arrival_stop_name=arrive_at,
-            sort_by=StopType.ARRIVAL,
-            max_trips=2)
+        
+        tmp_config_entry_id = f"{depart_from}_{arrive_at}".replace(" ", "_").lower()
+        
+        if train:
+            _LOGGER.debug("Creating TrainsHandler for train %s and stops %s -> %s", train, depart_from, arrive_at)
+            trips_handler = await TrainsHandler.create(
+                departure_stop_name=depart_from,
+                mbta_client=client,
+                trip_name=train,
+                arrival_stop_name=arrive_at,
+                max_trips=max_trips,
+            )
+            name = f"{train} - {name}"
+        else:
+            # Validate the API key and stops by attempting to create a TripsHandler.
+            _LOGGER.debug("Creating TripsHandler for stops %s -> %s", depart_from, arrive_at)
+            trips_handler = await TripsHandler.create(
+                departure_stop_name=depart_from,
+                mbta_client=client,
+                arrival_stop_name=arrive_at,
+                max_trips=max_trips,
+            )
+        
         # Create and refresh the coordinator
-        
-        _LOGGER.debug(f"Setting up data update coordinator")
-        
+        _LOGGER.debug("Setting up data update coordinator")
         coordinator = MBTATripCoordinator(hass, trips_handler)
-
         _LOGGER.debug("Updating trips data")
-
         await coordinator.async_config_entry_first_refresh()
 
         # Get the first trip and determine the route icon
@@ -1276,8 +1327,6 @@ async def async_setup_entry(
             3: "mdi:bus",
             4: "mdi:ferry",
         }.get(route_type, "mdi:train")
-
-        trip = f"{trip.departure_stop_name} - {trip.arrival_stop_name}"
         
         # Create sensors
         _LOGGER.debug("Creating sensors")
@@ -1287,13 +1336,13 @@ async def async_setup_entry(
                 config_entry_name=name,
                 config_entry_id=config_entry_id,
                 coordinator=coordinator,
-                sensor_name=trip,
+                sensor_name=name,
                 icon=icon),
             MBTANextTripSensor(
                 config_entry_name=name,
                 config_entry_id=config_entry_id,
                 coordinator=coordinator,
-                sensor_name=f"{trip} (next)",
+                sensor_name=f"{name} - Next",
                 icon=icon),
             MBTAHeadsignSensor(
                 config_entry_name=name,
@@ -1480,5 +1529,5 @@ async def async_setup_entry(
         return True
 
     except Exception as e:
-        _LOGGER.error(f"Error setting up MBTA Trip sensors: {e}")
+        _LOGGER.error("Error setting up MBTA Trip sensors: %s", e)
         return False
