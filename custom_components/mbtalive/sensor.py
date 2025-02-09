@@ -27,60 +27,33 @@ _LOGGER = logging.getLogger(__name__)
 
 class MBTATripCoordinator(DataUpdateCoordinator):
     """Coordinator to manage fetching trips data for sensors."""
-
     UPDATE_INTERVAL = timedelta(seconds=20)
 
     def __init__(self, hass, trips_handler: Union[TripsHandler, TrainsHandler]):
-        """Initialize the coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            name="MBTA Trip Data",
-            update_interval=self.UPDATE_INTERVAL,
-        )
-        
-        _LOGGER.debug("Initializing data update coordinator")
-        
+        super().__init__(hass, _LOGGER, name="MBTA Trip Data", update_interval=self.UPDATE_INTERVAL)
         self.trips_handler: Union[TripsHandler, TrainsHandler] = trips_handler
-        self._last_successful_data = None  # Initialize with no data
-        self._update_in_progress = False  # Flag to track if an update is in progress
+        self._last_successful_data = None
+        self._update_in_progress = False
 
     async def _async_update_data(self):
-        """Fetch data from the MBTA API while preserving the last known good data during updates."""
-        
-        _LOGGER.debug("Starting async data update")
-        
         if self._last_successful_data is not None and self._update_in_progress:
-            _LOGGER.debug("Update in progress—temporarily using last known good data.")
-            return self._last_successful_data  # Provide temporary data while updating
-
-        # Mark the update as in progress
+            return self._last_successful_data
         self._update_in_progress = True
-
         try:
-            _LOGGER.debug("Updating MBTA trips data")
             trips: list[Trip] = await self.trips_handler.update()
-
-            if not trips:  # No trips available (e.g., end of service)
-                _LOGGER.warning("No trips available—marking data as unavailable.")
-                self._last_successful_data = None  # Clear last successful data
-                return None  # Mark sensors as unavailable
-
-            self._last_successful_data = trips  # Store valid data
-            _LOGGER.debug("MBTA trips data update complete")
-            return trips  # Return new valid data
-
+            if not trips:
+                self._last_successful_data = None
+                return None
+            self._last_successful_data = trips
+            return trips
         except UpdateFailed as e:
             _LOGGER.error("Update failed: %s", e)
-            return None  # Mark sensors as unavailable
-
+            return None
         except Exception as err:
             _LOGGER.error("Error fetching trips data: %s", err)
-            return None  # Mark sensors as unavailable
-
+            return None
         finally:
-            self._update_in_progress = False  # Reset update flag
-            _LOGGER.debug("Async data update complete")
+            self._update_in_progress = False
 
 class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
     """Base class for MBTA trip sensors."""
@@ -98,10 +71,7 @@ class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
         
         super().__init__(coordinator)  # Ensures entity is linked to the coordinator
         
-        if isinstance(self, MBTATripSensor) or isinstance(self, MBTANextTripSensor):
-            entity_id = f"{sensor_name}"
-        else:
-            entity_id = f"({config_entry_name}_{sensor_name})"
+        entity_id = f"{config_entry_name}_{sensor_name}"
             
         # Ensure unique ID is stable across reboots
         self._attr_unique_id = f"{config_entry_id}_{sensor_name}".lower().replace(' ', '_')
@@ -119,7 +89,6 @@ class MBTABaseTripSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = {
             "identifiers": {(DOMAIN, config_entry_id)}, 
             "name": config_entry_name,
-            "manufacturer": "MBTA",
             "model": "MBTA Live Trip Info",
         }
         self._attr_icon = icon
@@ -177,6 +146,7 @@ class MBTATripSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             if trip.departure_countdown:
                 return trip.departure_countdown
+            return "-"
         return "unavailable"
     
     @property
@@ -229,12 +199,13 @@ class MBTATripSensor(MBTABaseTripSensor):
             attributes["alerts"] = []
             if trip.alerts:
                 attributes["alerts"] = " # ".join(trip.alerts)
-            next_trips = []
-            for item in data[1:]:
-                if item.departure_countdown:
-                    next_trips.append(item.departure_countdown)
-            if len(next_trips) >0:
-                attributes["next"] = next_trips
+            if len(data) > 1:
+                next_trips = []
+                for item in data[1:]:
+                    if item.departure_countdown:
+                        next_trips.append(item.departure_countdown)
+                if len(next_trips) > 0:
+                    attributes["next"] = next_trips
             return attributes  # Return the dictionary of attributes
         return None
 
@@ -246,10 +217,11 @@ class MBTANextTripSensor(MBTABaseTripSensor):
         """Return the state of the sensor."""
         data = self.coordinator.data
         if data:
-            if len(data) >= 1:
+            if len(data) > 1:
                 trip: Trip = data[1]
                 if trip.departure_countdown:
                     return trip.departure_countdown
+                return "-"
         return "unavailable"
     
     @property
@@ -257,7 +229,7 @@ class MBTANextTripSensor(MBTABaseTripSensor):
         """Return extra attributes."""
         data = self.coordinator.data
         if data:
-            if len(data)>=1:
+            if len(data) > 1:
                 trip: Trip = data[1]
                 attributes = {}
                 if trip.departure_stop_name:
@@ -1245,7 +1217,7 @@ class MBTAAlertsSensor(MBTABaseTripSensor):
             trip: Trip = data[0]
             attributes = {}
             if trip.alerts:
-                attributes["alerts"] = " # ".join(trip.alerts)
+                attributes["alerts"] = " ".join(trip.alerts)
             return attributes  # Return the dictionary of attributes
         return None
 
@@ -1263,7 +1235,6 @@ async def async_setup_entry(
     API key from the config entry.
     """
         
-    # Extract configuration data
     depart_from = entry.data.get("depart_from")
     arrive_at = entry.data.get("arrive_at")
     api_key = entry.data.get("api_key")
@@ -1271,28 +1242,22 @@ async def async_setup_entry(
     train = entry.data.get("train")
     name = entry.title
     config_entry_id = entry.entry_id
-    
+
     _LOGGER.debug("Setting up MBTA device")
 
-    # Ensure our integration data container exists.
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = {}
 
-    # Retrieve the MBTAClient from hass.data.
     client: MBTAClient = hass.data[DOMAIN].get("mbta_client")
     if not client:
-        _LOGGER.debug("MBTAClient not found; creating new instance with API key: %s", api_key)
-        client: MBTAClient = MBTAClient(api_key=api_key, cache_manager=MBTACacheManager())
+        _LOGGER.debug("Creating new MBTAClient instance")
+        client = MBTAClient(api_key=api_key, cache_manager=MBTACacheManager())
         hass.data[DOMAIN]["mbta_client"] = client
     else:
-        _LOGGER.debug("Reusing existing MBTAClient with API key: %s", client._api_key)
+        _LOGGER.debug("Reusing existing MBTAClient")
 
     try:
-        
-        tmp_config_entry_id = f"{depart_from}_{arrive_at}".replace(" ", "_").lower()
-        
         if train:
-            _LOGGER.debug("Creating TrainsHandler for train %s and stops %s -> %s", train, depart_from, arrive_at)
             trips_handler = await TrainsHandler.create(
                 departure_stop_name=depart_from,
                 mbta_client=client,
@@ -1300,24 +1265,18 @@ async def async_setup_entry(
                 arrival_stop_name=arrive_at,
                 max_trips=max_trips,
             )
-            name = f"{train} - {name}"
         else:
-            # Validate the API key and stops by attempting to create a TripsHandler.
-            _LOGGER.debug("Creating TripsHandler for stops %s -> %s", depart_from, arrive_at)
             trips_handler = await TripsHandler.create(
                 departure_stop_name=depart_from,
                 mbta_client=client,
                 arrival_stop_name=arrive_at,
                 max_trips=max_trips,
             )
-        
-        # Create and refresh the coordinator
-        _LOGGER.debug("Setting up data update coordinator")
+
         coordinator = MBTATripCoordinator(hass, trips_handler)
-        _LOGGER.debug("Updating trips data")
         await coordinator.async_config_entry_first_refresh()
 
-        # Get the first trip and determine the route icon
+        # Determine route icon based on the first trip
         trip: Trip = coordinator.data[0]
         route_type = trip.mbta_route.type
         icon = {
@@ -1330,19 +1289,18 @@ async def async_setup_entry(
         
         # Create sensors
         _LOGGER.debug("Creating sensors")
-        
         sensors = [
             MBTATripSensor(
                 config_entry_name=name,
                 config_entry_id=config_entry_id,
                 coordinator=coordinator,
-                sensor_name=name,
+                sensor_name="Upcoming",
                 icon=icon),
             MBTANextTripSensor(
                 config_entry_name=name,
                 config_entry_id=config_entry_id,
                 coordinator=coordinator,
-                sensor_name=f"{name} - Next",
+                sensor_name="Following",
                 icon=icon),
             MBTAHeadsignSensor(
                 config_entry_name=name,
@@ -1523,11 +1481,28 @@ async def async_setup_entry(
                 sensor_name="Live Data",
                 icon="mdi:signal-variant"))
 
+    
         # Add the sensors to Home Assistant
         async_add_entities(sensors)
+        
+        # Register an update listener to reload the entry when options change.
+        entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
         _LOGGER.debug("Setting up MBTA Trip sensors completed successfully.")
         return True
 
     except Exception as e:
         _LOGGER.error("Error setting up MBTA Trip sensors: %s", e)
         return False
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the config entry when updated."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload the MBTA sensor platform."""
+    _LOGGER.debug("Unloading MBTA integration entry: %s", entry.entry_id)
+    unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+    return unload_ok

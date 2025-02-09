@@ -7,9 +7,16 @@
         "data": {
           "depart_from": "Departure stop (Required)",
           "arrive_at": "Arrival stop (Required)",
-          "api_key": "API Key (Required)", 
+          "api_key": "API Key (Required)",
           "max_trips": "Number of subsequent trips to track (Optional)",
           "train": "Train number (Optional)"
+        }
+      },
+      "init": {
+        "title": "MBTA Live Configuration",
+        "description": "Modify your MBTA Live integration",
+        "data": {
+          "max_trips": "Number of subsequent trips to track (Optional)"
         }
       }
     },
@@ -22,13 +29,5 @@
       "api_key_error": "There was an issue with the API connection. Please check your API key and internet connection.",
       "invalid_input": "Invalid input provided. Please check your entries."
     }
-  },
-  "config_flow": {
-    "depart_from": "Departure stop (Required)",
-    "arrive_at": "Arrival stop (Required)",
-    "api_key": "API Key (Required)",
-    "max_trips": "Number of subsequent trips to track (Optional)",
-    "train": "Train number (Optional)",
-    "description": "If an API key has already been provided, this field will be pre-populated. To continue using the existing API key, leave the field unchanged. To update it, simply enter the new value."
   }
 }
